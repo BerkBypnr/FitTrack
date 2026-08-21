@@ -1,0 +1,28 @@
+# JavaScript dependencies
+node_modules/
+
+# Android machine-local files and build caches
+android/.gradle/
+android/.kotlin/
+android/local.properties
+android/**/build/
+*.iml
+.idea/
+
+# Signing material and secrets
+*.jks
+*.keystore
+*.p12
+*.pem
+.env
+.env.*
+!.env.example
+
+# Build outputs and temporary files
+*.apk
+*.aab
+*.log
+.DS_Store
+Thumbs.db
+tmp/
+temp/

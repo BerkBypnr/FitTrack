@@ -1,0 +1,10 @@
+{
+  "name": "FitTrack",
+  "short_name": "FitTrack",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#070b10",
+  "theme_color": "#070b10",
+  "lang": "tr",
+  "description": "Gerçek set akışıyla antrenmanı akıtır, antrenörüne bağlı tutar."
+}

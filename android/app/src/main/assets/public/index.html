@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#070b10" />
+    <meta name="description" content="FitTrack — antrenmanı akıtan, antrenörüne bağlı tutan sade fitness deneyimi." />
+    <title>FitTrack</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css?v=0.11.4" />
+  </head>
+  <body>
+    <div class="noise" aria-hidden="true"></div>
+    <div id="app" class="app-shell">
+      <header id="topbar" class="topbar"></header>
+      <main id="screen" class="screen" aria-live="polite"></main>
+      <nav id="bottomNav" class="bottom-nav" aria-label="Ana menü"></nav>
+    </div>
+
+    <section id="flowLayer" class="flow-layer" aria-live="polite"></section>
+    <section id="sheetLayer" class="sheet-layer" aria-live="polite"></section>
+    <section id="authLayer" class="auth-layer" aria-live="polite"></section>
+    <div id="toast" class="toast" role="status"></div>
+
+    <script src="./vendor/supabase.min.js?v=2.112.2"></script>
+    <script src="./config.js?v=0.11.4"></script>
+    <script src="./cloud.js?v=0.11.4"></script>
+    <script src="./app.js?v=0.11.4"></script>
+  </body>
+</html>

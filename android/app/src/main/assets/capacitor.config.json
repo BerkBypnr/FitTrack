@@ -1,0 +1,18 @@
+{
+	"appId": "com.fittracklabs.mobile",
+	"appName": "FitTrack",
+	"webDir": "www",
+	"server": {
+		"androidScheme": "https"
+	},
+	"android": {
+		"allowMixedContent": false,
+		"backgroundColor": "#080b10",
+		"webContentsDebuggingEnabled": false
+	},
+	"plugins": {
+		"LocalNotifications": {
+			"iconColor": "#8fffb1"
+		}
+	}
+}
