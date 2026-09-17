@@ -1,0 +1,28 @@
+name: FitTrack verification
+on: [push, pull_request]
+jobs:
+  tests-and-unsigned-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager "platforms;android-36" "build-tools;35.0.0" "build-tools;36.0.0"
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm audit --audit-level=high
+      - run: python3 scripts/package_source.py --output out/FitTrack-Beta-0.12.1-Source.zip
+      - run: python3 scripts/build_android.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FitTrack-0.12.1-verification
+          path: |
+            out/*unsigned.apk
+            test-results/

@@ -1,0 +1,803 @@
+Kaynak, .md adlı DOCX dosyasından çıkarılan metindir. Biçim/stiller taşınmadı.
+
+FitTrack Ürün ve Platform Yol Haritası
+
+Başlangıç: Beta 0.11.9 / versionCode 26 / yerel veri şeması 14
+
+Belge: 10 Eylül 2026 / Revizyon 6 / Berk ve Alper
+
+FitTrack’in sıradaki ürün teslimi, üyeden ayrı bir antrenör web yönetim panelidir. Önce Android kaynak ve derleme temeli güvenceye alınacak, sonra panel görev görev açılacak. Mevcut üye deneyimi korunacak. Masaüstü ihtiyacı ilk aşamada tarayıcıdan çalışan panelle karşılanacak; iOS ortak kaynak üzerinden ayrı cihaz kabulüyle geliştirilecek.
+
+3D hareketler iptal edildi. Yerine geniş bir hareket kütüphanesi kurulacak ve yayımlanan her hareketin onaylı GIF’i olacak. GIF içerik paketleri uygulama sürümlerinden ayrı yayımlanacak. Güvenlik her paketin kabul şartıdır; pilot, iOS’un veya bütün GIF kataloğunun bitmesini beklemeyecek.
+
+1 Başlangıç ve tamamlanan işler
+
+Sürüm veya alan
+
+Tamamlanan iş
+
+Yeni plandaki durum
+
+0.11.6 / 23
+
+Normal giriş e-posta ve şifre. Kayıtta iki şifre alanı ve e-posta doğrulama kodu. Açıkça başlatılan şifre kurtarma kodla. Altı tema.
+
+Korunacak; normal giriş parolasız koda çevrilmeyecek.
+
+0.11.7 / 24
+
+Üye ana sayfası, gerçek program ve antrenman verileri, aktif antrenman yerleşimi, geçmişten hesaplanan rozetler.
+
+Yeniden tasarım değil, regresyon ve ortak veri modeline uyarlama.
+
+0.11.8 / 25
+
+İptalde Hayır ile aynı antrenmana dönüş; hareket detayından aynı program incelemesine dönüş; kilo kartı içerikte, yalnız tamamla düğmesi sabit; açıklama açık.
+
+Gezinme, alan değerleri ve kaydırma konumu korunacak.
+
+0.11.9 / 26
+
+Açıklama ve antrenör notundaki iç kaydırıcı kaldırıldı. Tek ana antrenman kaydırıcısı kaldı. Şema 14 değişmedi.
+
+Sınırlı yükseklikli iç kaydırıcı geri getirilmeyecek.
+
+Mevcut çekirdek
+
+Hareket arama ve kas filtresi, üye arama ve filtre, önceki antrenman değerlerini uygulama, taslak kurtarma, silme ve geri alma, snapshot, temel mesajlaşma ve senkronizasyon.
+
+Mevcut özelliğin iyileştirilmesi ve panel veya yeni veri modeline uyarlanması olarak işaretlenecek.
+
+Mevcut medya ve ilerleme
+
+Bazı hareketlerde GIF veya statik görsel; 7 gün, 4 hafta ve 6 ay ilerleme görünümleri.
+
+Yeni GIF kataloğu tamamlanmış sayılmaz. Mevcut grafikler sıfırdan yazılmayacak.
+
+
+
+Devir raporu 0.11.9 için 15 test grubunun geçtiğini, üye testlerinin 30/30 ve gezinme testlerinin 16/16 olduğunu bildiriyor. Gerçek dokunmatik kaydırma, tarayıcı render, klavye, canlı Auth ve SMTP, iki cihaz ve çevrimdışı uçtan uca kabulü açık. Otomatik test sonucu bu kabullerin yerine geçmez.
+
+Android’in mevcut native kaynağı özgün Gradle projesi değil, 0.11.3 APK kökenli Smali/XML zinciridir. 9 Eylül antrenör paylaşım ZIP’i ise tasarım paketidir; uygulama kaynak paketi yerine kullanılamaz. Eski iptal edilmiş validation projesi sessizce ana kaynağa alınmayacak.
+
+2 Sürüm özeti
+
+Sürüm numaraları takvim taahhüdü değildir. Bir sürümdeki A ve B adımları ayrı geliştirme ve kabul oturumlarıdır; her adım için yeni APK veya mağaza yayını gerekmez. Bağımlı adım, öncekinin testi kapanmadan başlamaz. Yalnız web veya içerik değişirse Android sürümünü gereksiz yere yükseltmeyiz.
+
+Antrenör paneline geçiş
+
+Sürüm
+
+Ana teslim
+
+Ayrı kabul adımları
+
+Kapı 0
+
+0.11.9 telefon kabulü ve gerçek kaynak teslimi
+
+Kaynak kimliği, güncelleme, veri ve giriş kontrolü.
+
+0.12.0
+
+Ortak kaynak, standart Android derlemesi ve CI
+
+A kaynak ve test tabanı; B native taşıma ve yükseltme; C temiz CI.
+
+0.12.1
+
+Ayrı antrenör web paneli, rol ayrımı, MFA ve tema sistemi
+
+A sunucu yetkileri; B masaüstü kabuk ve erişilebilirlik.
+
+0.12.2
+
+Özet, üyeler, üye detayı ve öncelik nedenleri
+
+Gerçek veri kaynağı ve kapsam; antrenör görev testi.
+
+0.12.3
+
+Program listesi, detay ve güvenli atama
+
+A tekli atama; B kontrollü toplu atama.
+
+0.12.4
+
+Program Stüdyosu ve hazırlama kolaylıkları
+
+A mevcut oluşturucu uyarlaması; B kopya, şablon, favori ve toplu düzenleme.
+
+0.12.5
+
+Değişmez program sürümleri ve üye sürüm taşıma
+
+A sürüm sözleşmesi ve göç; B taşıma seçenekleri.
+
+0.12.6
+
+Antrenör mesaj ekranı ve üye program bağlamı
+
+Mevcut metin mesajlaşmasının güvenli panel uyarlaması.
+
+0.12.7
+
+Salon ayarları, ekip, davet ve erişim yönetimi
+
+A kontrollü davet; B rol ve atama yönetimi.
+
+0.12.8
+
+Panel bütünleşik kabulü ve Android web pilotuna hazırlık
+
+Güvenlik, restore, tarayıcı, telefon ve antrenör görevleri.
+
+
+
+Hareketler ve sonraki platformlar
+
+Sürüm
+
+Ana teslim
+
+Ayrı kabul adımları
+
+0.13.0
+
+Hareket ölçüm modeli ve eski kayıtların uyarlanması
+
+A sözleşme ve göç provası; B kayıt ve gösterim uyarlaması.
+
+0.13.1
+
+GIF medya altyapısı ve ilk onaylı içerik grubu
+
+A tek gerçek GIF ile uçtan uca doğrulama; B yükleme, cache, yayın ve geri alma.
+
+GIF 001 ve devamı
+
+Geniş hareket kütüphanesi
+
+Öneri: 25 hareketlik gruplarla ilk 150 hareket; her grupta yüzde 100 GIF.
+
+0.13.2
+
+Program blokları ve superset oynatıcısı
+
+A blok tanımı ve eski programlar; B sıra, dinlenme ve oturum kurtarma.
+
+0.13.3
+
+Antrenman takvimi, planlama ve erteleme
+
+A tarih ve saat dilimi; B erteleme ve takvim deneyimi.
+
+0.14.0
+
+Devamlılık ve gerçek takip kayıtları
+
+Öncelik sinyalinden görüşme, görev, sorumlu ve sonuç kaydına geçiş.
+
+0.14.1
+
+İki cihaz ve çift çevrimdışı kayıt güvenliği
+
+A idempotency ve kuyruk; B çatışma çözümü ve fiziksel iki cihaz testi.
+
+0.14.2
+
+Mesaj geçmişi ölçekleme ve push bildirimleri
+
+A sayfalama; B token, push ve bildirim tercihleri.
+
+0.15.0
+
+iOS mühendislik betası
+
+Xcode projesi, derleme, giriş, güvenli saklama ve temel antrenman.
+
+0.15.1
+
+iOS cihaz ve TestFlight kabulü
+
+Çevrimdışı kayıt, GIF, push, yaşam döngüsü ve gerçek iPhone testleri.
+
+0.16.0
+
+Çapraz platform güvenlik ve operasyon kabulü
+
+Android, web ve iOS denetimi; izleme, kurtarma ve veri hakları.
+
+0.17.0
+
+Genişletilmiş tek salon pilotu
+
+Öneri: 2–3 antrenör ve 6–10 gönüllü üyeyle dört haftalık ölçüm.
+
+0.18.0
+
+Çok salonlu kapalı beta
+
+En az iki salonda izolasyon, rol geçişi, kota ve maliyet doğrulaması.
+
+1.0
+
+Kontrollü ticari yayın
+
+Mağaza, web, destek, gizlilik, izleme ve kurtarma kabulü.
+
+
+
+Erken pilot kararı: Test hesaplarıyla antrenör görevleri 0.12.1–0.12.2’de başlar. Kapı B koşulları sağlanırsa gerçek Android ve web pilotu 0.12.8’den sonra açılabilir; 0.14, iOS veya 150 GIF’in tamamı zorunlu ön koşul değildir. Pilot kapsamı, kabulü geçmeyen iki cihaz eşzamanlı yazma gibi akışları kapalı tutar.
+
+Önceki plana göre numara değişikliği: GIF altyapısı 0.13.1’e alındı; superset 0.13.2’ye, takvim 0.13.3’e kaydı. Eski 0.15.1 ve 0.15.2 3D işleri iptal edildi. Yeni 0.15.1 yalnız iOS kabulüdür; 0.15.2 paketi yoktur.
+
+3 Astra Max ile paketleme kuralı
+
+Birden fazla sürümün tek istemde sorunsuz tamamlanacağı varsayımıyla plan yapmayız. Astra Max için iş birimi, test edilebilir ve bağımsız geri alınabilir değişikliktir. Risk düzeyleri kodun hatalı olma yüzdesi değil, değişen veri ve platform sınırlarına göre planlama değerlendirmesidir.
+
+Risk
+
+Örnek
+
+Uygulama kararı
+
+Düşük
+
+Aynı ekranda tema, boş durum, filtre görünümü
+
+Aynı görevde yapılabilir; mevcut test ve görsel kabul gerekir.
+
+Orta
+
+Üye listesi ve detay, mevcut mesajlaşmanın panel düzeni
+
+Tek akış olarak uygulanabilir; API, yetki ve UI ayrı doğrulanır.
+
+Yüksek
+
+Native taşıma, MFA ve RLS, program sürüm göçü, hareket modeli, çift çevrimdışı kayıt, iOS
+
+A ve B kabul adımları ayrı oturumlarda tamamlanır. Tek büyük değişiklik olarak birleştirilmez.
+
+
+
+Bir görev için değişecek modüller, veri sözleşmesi, kabul senaryoları ve geri alma yolu yazılmadan kodlamaya başlanmaz. Hem şema hem yetki hem oynatıcı değişiyorsa önce geriye uyumlu veri sözleşmesi, sonra tüketici ekran uygulanır. Fiziksel cihaz veya canlı e-posta kabulü gerekiyorsa yapay zekâ o adımı geçmiş sayamaz.
+
+Test kırılması, beklenmedik kaynak farkı, veri göçünde kayıp veya belirsiz yetki durumunda kapsam genişletilmez. Mevcut adım düzeltilir; gerekiyorsa bağımsız yama çıkarılır. Her teslimde tamamlanan, başarısız olan, çalıştırılmayan ve sonraya kalan işler ayrı yazılır. Commit, build ve migration kimliği devir raporuna eklenir.
+
+Program Stüdyosu kolaylıkları ile sürüm taşıma; superset ile takvim; mesaj sayfalama ile push; iOS derlemesi ile fiziksel kabul bu nedenle ayrıdır. Aynı dosyalarda geniş değişiklikler eşzamanlı yürütülmez. GIF çekimi, lisanslama ve antrenör incelemesi ise hareket kimlikleri belirlendikten sonra kod geliştirmesiyle aynı dönemde ilerleyebilir.
+
+4 Android kaynak ve derleme geçişi
+
+Kapı 0
+
+Gerçek 0.11.9 APK, kaynak ZIP ve devir raporu birlikte doğrulanır. Paket, hash ve orijinal imza kontrol edilir; tasarım ZIP’i kaynak sayılmaz.
+
+Samsung S23 ve Android 16’da mevcut 0.11.8 üzerine 0.11.9 kurulur. Hesap, tema, program, geçmiş ve yarım antrenman korunur.
+
+Açık açıklamanın ve uzun antrenör notunun üzerinden kaydırma; kilo ve tekrar girişi; klavye, büyük yazı ve sabit tamamla düğmesi denenir. Hayır ile aynı antrenmana ve hareket detayından aynı program incelemesine dönüş doğrulanır.
+
+Normal giriş e-posta ve şifreyle; kayıt doğrulaması kodla; şifre kurtarma yalnız kullanıcının başlattığı ayrı akışla denenir. Eski parolasız giriş ve üç şablon zorunluluğu uygulanmaz.
+
+Kabul: Temel akışı engelleyen hata veya veri kaybı yok. Gerçek kaynak ve imza girdileri doğrulanmış. Sentetik panel tasarımı ilerleyebilir; bu kapı geçmeden yeni imzalı beta yayımlanmaz.
+
+Kaynak taşıma
+
+Sürüm 0.12.0 / yüksek risk / üç ayrı kabul
+
+A: Mevcut web kaynakları, testler, yerel şema, depolama anahtarları ve native çağrılar envanterlenir. Kilitli bağımlılıklarla temiz kurulum ve mevcut davranış testleri çalışır. İptal edilmiş kaynak ağacı yeniden kullanılacaksa önce açık karar alınır.
+
+B: Standart Gradle ve Capacitor tabanı kurulur. Paket adı, auth deep link, izinler, ikon, splash, dosya paylaşımı ve mevcut beta imzasıyla yükseltme korunur. WebView origin ve depolama konumu değişirse eski yerel veriye erişim ile taşıma özellikle test edilir; aynı paket adı tek başına veri koruma kanıtı değildir.
+
+C: Temiz CI runner web ve Android build üretir; test, dependency ve secret taraması çalışır. Native dosya sayısı değil işlev, görünüm, veri, imza ve güncelleme uyumu karşılaştırılır. Smali ağacı köken arşivi olarak kalır.
+
+Platform bağımlı bildirim, dosya, güvenli saklama, bağlantı, geri, klavye ve deep link çağrıları adaptör sınırlarına alınır. Kullanılacak Capacitor, Node, JDK ve Gradle sürümleri uyumluluk denemesinde seçilip kilitlenir; geniş framework yükseltmesi aynı göreve eklenmez. Capacitor belgeleri
+
+Kabul: Temiz kaynaktan üretim, mevcut 0.11.9 üzerine veri silmeden güncelleme ve kritik üye akışları geçer. Bu pakette antrenör özelliği, yeni hareket modeli veya yeni GIF kataloğu geliştirilmez.
+
+5 Antrenör web yönetim paneli
+
+Antrenör ve üye aynı ekranı kullanmayacak. Bilgisayarda sol menü ve geniş içerik, dar ekranda görevleri koruyan yerleşim olacak. Ana alanlar Özet, Üyeler, Programlar, Mesajlar ve Ayarlar. Aynı kişinin iki rolü varsa Antrenmanım ve Yönetim geçişi açıkça gösterilecek.
+
+Panel bir sınırsız admin hesabı değildir. Antrenör yalnız atandığı üyeleri, salon yöneticisi yalnız kendi salonunun ekip ve üyelerini yönetir. FitTrack operasyonu varsayılan olarak ham mesaj ve antrenman verisine erişmez. Kullanıcının tarayıcıda rol değiştirmesi yetki kazandırmaz.
+
+Panel kabuğu ve güvenli erişim
+
+Sürüm 0.12.1 / A güvenlik, B arayüz
+
+A adımında salon üyeliği, rol ve antrenör ataması mevcut kaynakta kontrol edilir; gerekiyorsa eklemeli geçiş yapılır. RLS ve API negatif testleri ile TOTP MFA kurulur. Antrenör, salon yöneticisi ve operasyon rollerinin yönetim erişimi sunucuda MFA doğrulaması gerektirir. Üyenin kendi antrenman akışına gereksiz yönetim yetkisi veya yönetim MFA şartı uygulanmaz. Supabase MFA
+
+B adımında ayrı yönetim rotaları, altı tema, 1440, 1024 ve 390 px yerleşimler; yükleniyor, boş, hata, çevrimdışı ve yetki reddi durumları tamamlanır. Klavye odağı ve menü geçişleri test edilir. Redline Editorial için önceki tasarım kararındaki kırmızı token revizyonu ortak tema üzerinden uygulanır; üye ekranlarının davranışı değiştirilmez.
+
+Kabul: Üye paneli açamaz; antrenör ve yönetici yalnız yetkili veriye erişir. MFA’sız yönetim API çağrısı da reddedilir. Test antrenörleri panel yönünü ve menüleri anlayabilir. Henüz yapılmamış program veya takip görevi bu sürümün kabulüne konmaz.
+
+Özet ve üyeler
+
+Sürüm 0.12.2 / orta risk
+
+Ana sayfa yalnız üç öncelikli üye, toplam öncelik, yeni mesajlar ve doğrulanabilir son işlemleri gösterir. Filtreler Tümü, Öncelikli ve Programsız olarak tutarlı kullanılır; görseldeki İlgilen etiketi aynı kavramla eşlenir.
+
+Mevcut üye arama ve filtre panel düzenine taşınır. Kart veya masaüstü liste üzerinden üye açılır; atanmış program ve son antrenmanlar görülür. Mevcut güvenli fotoğraf yoksa baş harfli avatar kullanılır; yeni fotoğraf yükleme açılmaz.
+
+Öncelik nedenleri son tamamlanan antrenman, tamamlanan program, açık program talebi, aktif program olmaması ve okunmamış mesajdır. Her nedenin kayıt ve zaman kaynağı bulunur. Kaynağı olmayan neden gösterilmez.
+
+Check-in verisi olmadan “salona gelmedi” yazılmaz. “8 gündür antrenman tamamlamadı” yalnız sunucuda görülen kayıt kapsamıyla sunulur; son senkronizasyon belirsizse durumun güncel olmayabileceği belirtilir.
+
+Kabul: Antrenör yetkili üyeyi bulur, öncelik nedenini doğrular, programını ve antrenmanını görür. ID değiştirme, arama sonucu ve sayaç üzerinden başka salon veya üye bilgisi sızmaz. Takip oluşturma 0.14.0 işidir.
+
+Programlar ve atama
+
+Sürüm 0.12.3 / A tekli atama, B toplu atama
+
+Program listesi, arama, taslak ve yayın durumu; günler, hareketler ve atanmış üyeler gösterilir. Mevcut atama işlevi panelde başlangıç tarihi, not ve çakışma uyarısıyla sunulur. Tekli atama testinden sonra kontrollü çoklu atama açılır. Yeniden deneme aynı atamayı çoğaltmaz; toplu işlemde kısmi başarısızlık görünürdür.
+
+Başlamış antrenman snapshot’ı ve geçmiş değişmez. Program ataması kaldırılmış yarım oturumun mevcut güvenli tamamlama veya iptal davranışı korunur. Üyeye keyfî üç program sınırı eklenmez. Aynı anda birden fazla programın görünümü ve atama kuralları mevcut davranışla uyumlu olur.
+
+Kabul: Programı bul, doğru üyeyi seç, ata, üye uygulamasında doğrula. Aktif oturum ve geçmiş korunur; yetkisiz salonlar arası atama sunucuda reddedilir.
+
+Program Stüdyosu
+
+Sürüm 0.12.4 / A mevcut çekirdek, B hazırlama kolaylıkları
+
+A adımında mevcut program oluşturucu temel bilgiler, günler, hareketler ve yayın kontrolü düzenine taşınır. Hareket arama, kas filtresi, taslak kurtarma, silme ve geri alma korunur. Set, tekrar, yük ve dinlenme doğrulaması; klavyeyle sıralama; gerçek kayıt durumu ve başarısız kaydetme mesajı tamamlanır.
+
+B adımında yeni işler eklenir: program ve gün kopyalama, başka programdan gün alma, taslak şablonları, favoriler, son kullanılanlar ve kapsam önizlemeli toplu düzenleme. İşlem geri alınabilir olmalı; kopya özgün programı değiştirmemeli. Atanmış veya yayımlanmış programı sessizce yerinde değiştirme açılmaz; sürüm geçişi sonraki pakettedir.
+
+Kabul: Üç günlük program oluşturulur, taslak kurtarılır, silme geri alınır ve doğru içerikle yayımlanır. En az üç test antrenörü sıfırdan ve kopyadan program hazırlar; süre, hata ve yardım ihtiyacı ölçülür. Kullanımı zorlaştıran kolaylık kapalı tutulabilir.
+
+Program sürümleme
+
+Sürüm 0.12.5 / yüksek risk / iki ayrı geliştirme oturumu
+
+A adımında taslak, şablon, yayımlanmış değişmez sürüm ve üye ataması ayrılır. Mevcut programlar ve atamalar için göç provası yapılır; eski istemci ve çevrimdışı kuyruk denenir. Yayımlanmış içeriğin değişmesi yeni sürüm oluşturur. Program sürümü, hareket ölçüm şeması ve GIF medya sürümü birbirine karıştırılmaz.
+
+B adımında üyeyi yeni sürüme taşıma açılır: atamayı şimdi değiştir, sonraki antrenmanda uygula veya taşıma yapma. “Şimdi” seçimi başlamış oturumu değiştirmez; yeni başlayan oturumlara uygulanır. Toplu taşıma önizleme, sonuç ve geri alma veya ileri düzeltme kaydı taşır.
+
+Kabul: Eski atama, tamamlanmış geçmiş, aktif oturum ve çevrimdışı taslak aynı anlamı korur. Kayıt sayısı, kimlik ve ilişkiler göç öncesi ve sonrası karşılaştırılır. Belirsiz eşleme varsa taşıma durur.
+
+Mesajlar ve salon yönetimi
+
+Sürüm 0.12.6 / mevcut mesajlaşmanın panel uyarlaması
+
+Konuşma listesi, üye veya konuşma arama, okunmamış görünümü, metin gönderme ve üye program bağlamı tamamlanır. Kullanıcı metni HTML olarak çalıştırılmaz. Tekrar gönderimde kopya mesaj oluşmaz. Erişimi kaldırılan antrenörün API ve Realtime erişimi birlikte kesilir. Bütün eski mesajların sınırsız arandığı iddia edilmez; tam geçmiş sayfalama 0.14.2’de ele alınır.
+
+Kabul: Üyeyi bul, program ata, antrenmanını gör, mesaj gönder görev zinciri artık uçtan uca geçer. Bu zincire takip oluşturma şartı eklenmez. İlk panelde dosya eki, canlı çevrimiçi durumu ve çalışmayan push düğmesi bulunmaz.
+
+Sürüm 0.12.7 / A davet, B ekip ve erişim
+
+Salon yöneticisi süreli, tek kullanımlık davet oluşturur; yeniden gönderme, kabul, iptal ve süre dolumu görünürdür. Davet, e-posta doğrulaması ve salon üyeliği ayrı durumlar olarak yönetilir. Antrenör kendiliğinden hesap veya yönetici rolü oluşturamaz. B adımında ekip, antrenör üye ataması, rol değişimi ve erişim iptali tamamlanır. MFA yeniden yazılmaz; 0.12.1 güvenlik sözleşmesi kullanılır. Her hassas değişiklik sunucuda audit kaydı üretir.
+
+Kabul: Normal antrenör yönetici yetkisi kazanamaz. Davet yeniden kullanılamaz. Yetkisi iptal edilen hesabın yeni istekleri reddedilir; eski oturum veya açık ekran yetkiyi sürdürmez.
+
+Panel kabulü ve erken pilot
+
+Sürüm 0.12.8 / yeni özellik ekleme paketi değil
+
+Chrome, Edge ve Safari’de masaüstü görevleri; klavye, büyük yazı, dar ekran ve hata durumları; Android güncelleme ve üye regresyonları tamamlanır. Test hesaplarıyla en az üç antrenör tüm görev zincirini yardım almadan dener. Güvenlik denetimi önceki sürümlerin yerine geçmez; birikmiş yüzeyleri birlikte doğrular.
+
+Kapı B: Gerçek üyeli Android ve web pilotu için rol ve salon izolasyonu, MFA, gerçek e-posta teslimi, yedekten geri yükleme, hesap silme ve destek süreci, hata izleme ve erişim iptali hazır olmalı. Kritik veya yüksek güvenlik açığı, veri kaybı ya da temel görev engeli açık kalmamalı. İki cihaz çatışması henüz kabul edilmediyse pilotta eşzamanlı çoklu cihaz yazması teknik olarak engellenir; kullanıcıya yalnız “kullanmayın” demek yeterli değildir.
+
+6 Hareket modeli ve GIF kütüphanesi
+
+Hareket ölçüm modeli
+
+Sürüm 0.13.0 / superset ve geniş katalogdan önce
+
+Ölçüm profili
+
+Kaydedilen ana değerler
+
+Örnek
+
+strength_reps_load
+
+Tekrar ve yük
+
+Bench press
+
+bodyweight_reps
+
+Tekrar, gerekirse ek yük varyantı
+
+Şınav
+
+timed_hold
+
+Süre
+
+Plank
+
+distance_time
+
+Mesafe ve süre
+
+Koşu
+
+cardio_machine
+
+Süre, cihaza uygun mesafe veya güç
+
+Bisiklet, rower
+
+loaded_distance
+
+Mesafe ve yük
+
+Farmer carry
+
+mobility_rehab
+
+Tekrar veya süre
+
+Mobilite hareketi
+
+completion_only
+
+Tamamlandı bilgisi
+
+Teknik çalışma
+
+
+
+Sabit hareket kimliği; Türkçe ad ve arama eş adları; kas grubu, ekipman, seviye ve varyant ilişkisi tanımlanır. Sağ ve sol taraf, birim, isteğe bağlı RIR veya RPE, tempo ve set türü yalnız ilgili profile uygun kullanılır; bütün hareketlere zorunlu kilo ve tekrar alanı eklenmez. Mobilite etiketi tıbbi tedavi iddiası değildir.
+
+A adımında eski requiresWeight ve requiresReps alanlarının eşleme tablosu ve belirsiz hareket inceleme listesi hazırlanır. B adımında oluşturucu, oynatıcı, önceki değerleri uygulama ve geçmiş gösterimi uyarlanır. Eski birimler, aktif snapshot’lar ve offline kayıtlar korunur. Geçmişe sonradan tahmini ölçüm değeri yazılmaz.
+
+Kabul: Her profil için taslak, atama, antrenman, düzenleme ve geçmiş senaryosu geçer. Superset bu kabulden önce başlamaz. Yeni medya kaydı geçmiş hareket kimliğini değiştirmez.
+
+GIF medya altyapısı
+
+Sürüm 0.13.1 / A tek GIF doğrulaması, B medya yönetimi
+
+A adımında hakları uygun tek bir gerçek hareket videosundan GIF ve poster üretilir; katalog, program oluşturucu, Android antrenman ekranı ve web panelinde doğru harekete bağlanır. Bu, tek hareketle kalma kararı değil, içerik seri üretiminin teknik doğrulamasıdır. Mevcut üye ekranına sahte döndürme veya 3D kontrolü eklenmez.
+
+B adımında medya manifesti, kontrollü yükleme, önbellek, sürümleme, aşamalı yayın ve geri alma tamamlanır. İlk 25 hareketlik öneri grubu bu altyapının kabulüne girer. Hareketler uygulama kaynak koduna tek tek gömülmez; GIF’lerin tamamı APK içine paketlenmez.
+
+Medya kaydında tutulacak bilgi
+
+Amaç
+
+exercise_id ve asset_version
+
+Hareket kimliği ile medya sürümünü ayırmak
+
+gif_url, poster_url ve içerik hash’i
+
+Doğru dosyayı yüklemek, cache’i güvenli yenilemek
+
+Boyut, kare sayısı, süre ve çözünürlük
+
+Bozuk, tek kareli veya aşırı ağır dosyayı reddetmek
+
+Kaynak, hak sahibi, lisans ve kullanım kapsamı
+
+Dağıtım ve çevrimdışı kopyalama hakkını doğrulamak
+
+İnceleme durumu, onaylayan ve tarih
+
+Teknik kontrol ile antrenör onayını izlemek
+
+İçerik paketi ve minimum istemci uyumu
+
+Eski uygulamayı bozmadan yayınlamak veya geri almak
+
+
+
+Bunlar mantıksal alanlardır; aynı amacı karşılayan mevcut yapı varsa ikinci tablo sistemi kurulmaz. Yayınlanmış medya dosyası yerinde ezilmez; yeni hash ve sürümle yayımlanır. Sunucu yalnız onaylanmış manifesti kullanıcılara açar. Ham kaynaklar ve lisans belgeleri herkese açık kovaya konmaz.
+
+Geniş içerik üretimi
+
+İlk hedef önerisi: 150 farklı ve gerçekten kullanılacak hareket; 25 hareketlik altı içerik paketi. Bu sayı mevcut ve yeni hareketlerin toplamı için üretim önerisidir; envanterden sonra kesinleştirilir. Mevcut aktif katalog daha büyükse 150’ye daraltılmaz; tüm aktif hareketlerin GIF eksiği tamamlanır ve yeni hareketlerle genişletilir. Yayımlanan katalogdaki GIF kapsaması her durumda yüzde 100 kalır. Benzer adlarla aynı hareketi çoğaltarak sayı artırılmaz.
+
+İlk paket pilot programlarındaki temel hareketlerden seçilir. Sonraki paketler serbest ağırlık, makine, kablo, vücut ağırlığı, core, kardiyo ve mobilite ihtiyaçlarını dengeler. İçerik paketleri GIF 001, GIF 002 şeklinde izlenir; yeni uygulama davranışı gerekmiyorsa APK veya iOS sürümü çıkarılmaz.
+
+Mevcut hareketlerin kimlikleri, görselleri, eksik GIF’leri ve lisansları çıkarılır; pilotta kullanılacaklar öne alınır.
+
+Kendi çekimimiz veya dağıtım hakkı açık kaynak video seçilir. Sporcu görüntüsü için gerekli kullanım izni kaydedilir. Rakip uygulamadan izinsiz GIF kopyalanmaz.
+
+Anlaşılır bir tekrar veya uygun hareket döngüsü seçilir. Kadraj, ekipman, taraf, hız ve başlangıç bitiş bütünlüğü korunur.
+
+Tekrarlanabilir dönüştürme hattı GIF ve poster üretir. Palet, çözünürlük ve kare hızı gerçek örneklerle ayarlanır. FFmpeg palet filtreleri
+
+Teknik kontrol dosya türünü, gerçek animasyonu, boyutu, çözünürlüğü, hash’i ve kırık bağlantıyı denetler. Antrenör her hareketin formunu, ekipmanını, açıklamasını ve tam tekrarını ayrıca onaylar.
+
+Grup test ortamında yayımlanır; onaylı manifest tek işlemle etkinleştirilir. Hatalı grupta önceki manifest geri alınır; program ve geçmiş kayıtları silinmez.
+
+Yapay zekâ isimlendirme, eşleme önerisi ve toplu işleme yardım edebilir. Ürettiği hareket görüntüsü, insan form incelemesi olmadan doğru veya güvenli kabul edilmez. Lisans ve form onayı otomatik testle kapanmaz.
+
+GIF kabulü ve uygulama performansı
+
+Yeni yayımlanan veya yeniden yayımlanan her katalog hareketinin çalışır ve antrenör onaylı GIF’i bulunur. Statik görseli .gif diye adlandırmak, tek kareli dosya veya yanlış harekete bağlamak kabul edilmez. Her paket için GIF’siz, bozuk veya lisansı belirsiz yayımlanmış kayıt sayısı sıfır olmalıdır.
+
+Eski özel hareketler, eski programlar ve antrenman geçmişi GIF eksik diye silinmez veya açılamaz hale getirilmez. Eksikler geçiş kuyruğunda işaretlenir; yeni katalog yayınına alınmadan tamamlanır. Mevcut geçmişi korumak, yeni katalogda GIF şartından vazgeçmek değildir.
+
+Listelerde poster gösterilir. Yalnız açılan hareketin animasyonu çalışır; ekran dışına çıkınca yükleme ve oynatma durur. Sonraki hareket kontrollü önceden indirilebilir.
+
+Önbellek boyut sınırı ve eski dosya temizleme kuralı bulunur. Çevrimdışı program indirmede toplam boyut gösterilir ve kullanıcı onayı alınır; indirme yarım kalırsa durum doğru yazılır.
+
+Ağ veya medya hatasında poster ve Türkçe açıklama görünür; set kaydetme, dinlenme sayacı ve antrenmanı tamamlama çalışır. Bu geçici fallback, katalogdaki eksik GIF’i tamamlanmış saymaz.
+
+Hareketi durdur veya yeniden başlat kontrolü gerçekten çalışır. GIF’i posterle değiştirmek durdurma yöntemi olabilir; kaldığı kareden devam etmiyorsa arayüz bunu vaat etmez. Hareket azaltma tercihi desteklenir. W3C hareketli içerik kontrolü
+
+GIF’ler büyük olabilir. Gerekirse aynı onaylı kaynaktan küçük MP4 veya WebM gösterim türevi kullanılabilir; her hareketin gerçek GIF dosyası yine üretilir, saklanır ve erişilebilir kalır. Bu yalnız performans seçeneğidir. web.dev GIF ve video karşılaştırması
+
+Kabul: S23, düşük veya orta sınıf Android ve masaüstü tarayıcıda en az 20 ardışık hareket geçişi, yavaş ağ, ağsız açılış, bozuk dosya ve cache temizleme denenir. İlk görüntü süresi, bellek, trafik ve kaydırma ölçülür. Test cihazı ve ağ profiliyle birlikte performans bütçesi kodlamadan önce yazılır. İçerik büyüdükçe aynı ölçüm tekrarlanır; GIF arızası antrenman verisini etkileyemez.
+
+7 Program akışı ve devamlılık
+
+Superset ve bloklar
+
+Sürüm 0.13.2 / yüksek risk / 0.13.0 kabulüne bağlı
+
+A adımı normal set ile superset bloklarını, blok içi sıra ve dinlenme kurallarını tanımlar; eski programlar normal blok olarak aynı anlamla açılır. B adımı oynatıcıda hareket geçişi, tur sayısı, tamamlanan set, geri dönme, düzenleme, duraklatma, iptal ve yarım oturum kurtarmayı tamamlar. Önceki değerleri uygulama hareket kimliği ve ölçüm profiline göre çalışır.
+
+Kabul: Superset sırasında uygulama kapanıp açıldığında aynı set ve tur geri gelir. Geçmiş ve normal program regresyonları geçer. Takvim, saat dilimi ve kapsamlı interval türleri aynı göreve eklenmez. Giant set, EMOM ve AMRAP talep kanıtı olmadan zorunlu kapsam değildir.
+
+Planlama ve takvim
+
+Sürüm 0.13.3 / superset uygulamasından ayrı
+
+A adımında antrenman planı, gün, yerel tarih ve saat dilimi kuralları kurulur. B adımında takvimden plan görme, gün erteleme ve kaçırılan antrenman davranışı açılır. Erteleme geçmiş antrenmanın zamanını değiştirmez. Tarih bazlı plan ile gerçek zaman damgası ayrılır; seyahat, saat dilimi değişimi ve yaz saati örnekleri denenir.
+
+Kabul: Android ve panel aynı planı tutarlı gösterir; çevrimdışı erteleme tekrarında kopya plan oluşmaz. PT randevusu, eğitmen uygunluğu, oda rezervasyonu ve ödeme bu antrenman takviminin zorunlu parçası değildir; ayrı ihtiyaç doğrulaması ister.
+
+Devamlılık ve takip
+
+Sürüm 0.14.0 / yeni iş akışı
+
+0.12’deki okunur öncelik sinyalleri artık görüşme notu, takip görevi, sorumlu antrenör, hatırlatma zamanı, erteleme, sonuç ve kapatma kaydıyla desteklenir. Yinelenen sinyal aynı açık görevi çoğaltmaz. Yetkisiz antrenör takip notlarını okuyamaz. İlk hatırlatma uygulama içindedir; push için 0.14.2 beklenir.
+
+Mevcut ilerleme grafikleri ve rozetler korunur. Antrenman devamlılık özeti ve basit kişisel rekor gösterimi mevcut veriden güvenilir hesaplanabildiği ölçüde eklenir. Eski 200 geçmiş kaydı sınırı nedeniyle “tüm zamanların rekoru” veya ömür boyu rozet sayacı denmez. Sunucu özeti gerekiyorsa ayrı A veri doğruluğu, B ekran kabulüyle eklenir; geçmiş silme ve düzeltmenin özete etkisi açık olur.
+
+Kabul: Öncelikli üyeyi aç, takip kaydı oluştur, sorumlu ata, ertele, sonuçlandır. Silinmiş veya düzeltilmiş antrenmandan yanlış devamlılık veya rekor üretilmez. Gerçek salon katılımı, check-in kaynağı yoksa hâlâ gösterilmez.
+
+8 Senkronizasyon ve bildirimler
+
+İki cihaz ve çevrimdışı kayıt
+
+Sürüm 0.14.1 / yüksek risk / iki ayrı geliştirme oturumu
+
+A adımında kalıcı işlem kimliği, tekrar deneme, sunucu revision kontrolü ve hesap veya salon kapsamlı offline kuyruk tanımlanır. Aynı işlemin tekrar gönderimi yeni antrenman yaratmaz. Saatlerin eşit olduğu varsayılmaz; yalnız son zaman damgasına bakıp veri ezilmez.
+
+B adımında iki cihaz aynı antrenmanı çevrimdışıyken değiştirirse iki kayıt da korunur. Ortak oturum kökü, ayrı deneme kimliği ve conflict_pending durumu kullanılır. Kullanıcı iki kaydı karşılaştırıp birini ana sonuç seçer veya iki ayrı antrenman olarak tutar. Alan alan otomatik birleştirme yapılmaz. Diğer kopya sessizce silinmez; karar ve düzeltme geçmişi korunur. Antrenör üyenin kaydını tek başına seçip ezemez.
+
+Çatışma çözülene kadar iki kayıt toplam antrenman, seri ve rekor hesaplarına çift sayılmaz; bekleyen durum açık görünür. Hesap değişiminde bir kullanıcının kuyruğu diğer hesaba gönderilmez. Yetki iptalinde veri sunucuya zorla yazılmaz; güvenli hata ve veri kurtarma yolu gösterilir.
+
+Kabul: İki fiziksel cihazla aynı antrenman, iki farklı antrenman, eşzamanlı çevrimdışı düzenleme, yeniden başlatma, ağ dalgalanması, erişim iptali ve hesap değişimi denenir. Sessiz veri kaybı ve kopya sayım yoktur. Geçmeden çoklu cihaz eşzamanlı yazması açılmaz.
+
+Mesaj geçmişi ve push
+
+Sürüm 0.14.2 / A ve B ayrı kabul
+
+A adımı cursor tabanlı mesaj sayfalama, kararlı sıralama, geçmiş yükleme, okunmamış sayısı ve tekrar eden mesajları ayıklamayı tamamlar. Yeni mesaj gelirken eski sayfaya gidildiğinde boşluk veya kopya oluşmamalı. Kullanıcının erişim kapsamı her sayfada uygulanır.
+
+B adımı bildirim tokenı kaydı ve yenileme, izin reddi, çıkışta token ilişkisinin kaldırılması, tekrar bildirim engeli, konuşma susturma ve bildirim tercihlerini ekler. Bildirim metni varsayılan olarak hassas içerik taşımaz. Bildirimden açılan hedefin yetkisi yeniden kontrol edilir. Android push kabulü bu sürümde, iOS APNs cihaz kabulü 0.15.1’de kapanır.
+
+Kabul: Sayfalama ve push ayrı test raporları üretir. Bildirim gönderildi bilgisi cihazın mutlaka teslim aldığı anlamına gelmez; sağlayıcı hata, token geçersizliği ve izin durumu izlenir. Dosya eki ve canlı presence eklenmez.
+
+9 iOS masaüstü ve yayın
+
+Masaüstü kapsamı
+
+Masaüstü teslimi 0.12 serisindeki ayrı antrenör web panelidir. Windows ve macOS’ta desteklenen tarayıcılarla kullanılır. Kurulabilir PWA ancak cache, oturum ve güncelleme davranışı test edilirse ek kolaylık olarak açılır; ilk kabul için şart değildir. Electron, Tauri veya ayrı masaüstü kurulum paketi ancak webin karşılamadığı somut ihtiyaç çıkarsa değerlendirilir. Üyenin masaüstünde tüm antrenman uygulamasını kullanması ayrı kapsam kararıdır.
+
+iOS geliştirme ve cihaz kabulü
+
+Sürüm 0.15.0 / mühendislik betası
+
+0.12.0 ortak kaynak ve platform adaptörlerinden iOS projesi oluşturulur; Smali iOS’a çevrilmez. Gerekli macOS, Xcode, Apple Developer, App Store Connect ve gerçek iPhone erişimi başlamadan hazırlanır. Bundle kimliği, imza, Keychain, deep veya universal link, dosya ve offline depolama uyarlanır. İlk kabul derleme, normal giriş, kayıt ve kurtarma, program açma ve temel antrenman kaydıdır. Capacitor iOS belgeleri
+
+Sürüm 0.15.1 / TestFlight ve fiziksel kabul
+
+Gerçek iPhone’da klavye, geri gezinme, güvenli alan, arka plana geçme, uygulama kapanması, aktif antrenman kurtarma, GIF yükleme ve cache, düşük ağ, çift cihaz senkronizasyonu ve APNs push denenir. Desteklenen sürüm sınırına yakın ve güncel iOS örnekleri belirlenir. Gizlilik beyanları, kullanılan SDK bilgileri ve gerekli izin açıklamaları dağıtımdan önce güncel mağaza koşullarına göre kontrol edilir.
+
+Kabul: Android ile aynı iş kuralı ve veri sonucu elde edilir; piksel piksel aynı görünüm şartı yoktur. Simülatör başarısı fiziksel kabul diye sunulmaz. iOS gecikmesi güvenlik kabulü geçmiş Android ve web pilotunu durdurmaz.
+
+Operasyon ve genişleme
+
+0.16.0: Web ve mobil güvenlik kontrolleri birlikte gözden geçirilir. Veri dışa aktarma ve hesap silme akışları, saklama süreleri, audit erişimi, hata izleme, yedek ve restore tatbikatı tamamlanır. Veritabanı yedeği ile GIF ve kaynak medya yedeği ayrı doğrulanır. Depolama ve trafik maliyeti gerçek dosya boyutu ve kullanım üzerinden ölçülür. Bunların erken pilot için gerekli asgari kısmı Kapı B’de zaten hazır olmalıdır.
+
+0.17.0: Tek salonda daha geniş pilot yürütülür. Program hazırlama süresi, yardım ihtiyacı, atama hatası, antrenman kayıt başarısı, veri kaybı, GIF açılışı ve antrenörün düzenli kullanımı ölçülür. Önerilen katılımcı ve dört hafta süresi ölçüm planıdır; kanıt gerekirse pilot uzar.
+
+0.18.0: En az iki salonda gerçek kullanım; çok salonlu kullanıcı geçişi, yetki iptali, sayaçlar, dosyalar, arama, mesaj ve offline cache izolasyonu doğrulanır. Çoklu salon güvenliği burada ilk kez yazılmaz; 0.12’de kurulan sınır gerçek ölçekte sınanır.
+
+1.0: Kontrollü ticari yayın. Açık kritik veya yüksek güvenlik bulgusu ve veri kaybı yok; geri yükleme, destek, mağaza ve gizlilik kabulleri kapalı; yayımlanan hareket kataloğu yüzde 100 onaylı GIF kapsamına sahip. Temel uygulama ve GIF medya sürümleri ayrı izlenir.
+
+10 Her sürümde siber güvenlik ve kalite
+
+Kimlik ve veri erişimi
+
+RLS, kullanıcının yalnız yetkili satırlara erişmesini sağlar; sadece giriş yapmış olma kontrolü değildir. Salon, kullanıcı, antrenör ataması ve güncel üyelik koşulları tablo, view, RPC, Realtime ve dosya erişiminde birlikte denetlenir. API’ye açılma izinleri de ayrıca kontrol edilir. Supabase RLS
+
+Kullanıcının değiştirebildiği user_metadata yetki kaynağı olmaz. JWT rol bilgisinin eski kalabileceği hesaba katılır; hassas işlem güncel sunucu üyeliğini kontrol eder. İstemcide service_role veya gizli anahtar bulunmaz. UPDATE ve taşımalar hem eski kayda erişimi hem yeni hedefe yazma hakkını doğrular. Yetki iptali sonrası açık bağlantılar ve yerel hassas cache de ele alınır. Program yayınlama, atama, rol ve erişim değişiklikleri açıldıkları sürümden itibaren sunucuda audit edilir; kayıtlar son kullanıcı tarafından değiştirilemez.
+
+0.12.1’den itibaren bütün yönetim rollerinde TOTP MFA kayıt, doğrulama, güvenli faktör değişimi ve cihaz kaybı kurtarma süreci bulunur. MFA yalnız arayüz yönlendirmesi değildir; yönetim veri erişimi ve API işlemleri sunucuda doğrulama seviyesiyle kısıtlanır. Üye antrenmanı ile yönetim işleminin aynı hesabı kullanması halinde kurallar eylemin yetkisine göre ayrılır. Supabase MFA
+
+E posta ve medya güvenliği
+
+Normal giriş şifreli kalır. Özel SMTP, doğrulanmış gönderen alanı, DNS doğrulama kayıtları, kayıt ve kurtarma şablonları, süre ve deneme sınırları, teslim ve bounce görünürlüğü ayrı kabul maddeleridir. Takım dışındaki gerçek test adresleriyle kayıt ve kurtarma denenmeden dış kullanıcı daveti açılmaz. Supabase’in varsayılan SMTP hizmeti üretim çözümü sayılmaz. Supabase SMTP
+
+Medya yükleme yalnız yetkili içerik rolüne açıktır. Tür, dosya boyutu ve gerçek içerik kontrol edilir; tahmin edilebilir dosya adıyla yetki aşımı önlenir. Public bucket kullanılırsa içindeki GIF’lerin herkese erişilebilir olacağı bilerek lisans ve mahremiyet kararı verilir. Özel veya lisansla kısıtlı içerikte uygun erişim ve süreli URL kullanılır. Uzak URL’den içe aktarma varsa sunucunun iç ağ adreslerine erişmesi engellenir. Supabase Storage erişim kontrolü
+
+Sürüm güvenliği ve kurtarma
+
+Her değişiklikte secret ve dependency taraması, kilitli bağımlılıklar, çıktı kaçışlama, güvenli yönlendirme, uygun CSP, API kötüye kullanım sınırları ve log maskeleme kontrol edilir. Web veya mobile ait yeni yüzeye göre test kapsamı genişletilir. Mobil kontrol listesi için OWASP MASVS kullanılır; listeyi uygulamak sertifikasyon veya sıfır açık garantisi değildir. OWASP MASVS
+
+Şema göçü önce test kopyasında, eklemeli ve eski istemciyle uyumlu denenir. Veri sayısı, ilişkiler ve birimler karşılaştırılır. Uygulama sürümünü geri almak veritabanını otomatik olarak geri almaz; ileri düzeltme ve geri yükleme yolu ayrıca yazılır. Üretimde yıkıcı göç, toplu silme veya anahtar değişimi ayrı onay ister.
+
+Eski devirdeki security definer ve RPC uyarıları ile sızmış parola korumasının güncel durumu kaynak ve advisor incelemesiyle sınıflandırılır; eski sayı otomatik olarak açık zafiyet sayısı kabul edilmez. View ve ayrıcalıklı fonksiyon erişimi tek tek kontrol edilir. Kullanılan gözlem betiklerinde logs.all varsa, 23 Eylül 2026 kaldırma değişikliğinden önce uyarlanır; kullanılmıyorsa yeni iş yaratılmaz. Data API nesne izinleri de otomatik varsayılmaz. Supabase log değişikliği, Data API erişim değişikliği
+
+Ortak teslim kanıtı
+
+Alan
+
+Teknik kontrol
+
+Ayrı gerçek kabul
+
+Android
+
+Temiz build, imza, paket, test ve göç
+
+Mevcut sürüm üzerine kurulum, dokunma ve klavye
+
+Panel
+
+Route, API, yetki ve bileşen testleri
+
+Gerçek tarayıcı ve antrenör görevleri
+
+Veri ve yetki
+
+Üye A ve B, atanmış ve atanmamış antrenör, başka salon, yönetici ve iptal edilmiş hesap testleri
+
+Ayrı test hesaplarıyla izinli ve yasak işlemler
+
+Offline
+
+Kuyruk, tekrar deneme ve çatışma
+
+İki cihaz, ağ kesintisi ve yeniden başlatma
+
+GIF
+
+Dosya, bağlantı, manifest ve kapsama kontrolü
+
+Antrenör form onayı ve cihaz performansı
+
+iOS
+
+Xcode, izin ve yapılandırma kontrolü
+
+TestFlight ve gerçek iPhone
+
+Operasyon
+
+Alarm, audit ve yedek kontrolü
+
+Restore ve erişim iptali tatbikatı
+
+
+
+Teknik sorumlu uygulama, göç ve güvenlik kanıtını; Berk ürün ve S23 kabulünü; test antrenörleri panel görevlerini ve GIF form onayını üstlenir. Alper teknik teslim ve gözden geçirmeyi koordine eder. Fiziksel test erişimi yoksa durum bekliyor olarak kalır.
+
+11 İptal edilen ve erken bulunan işler
+
+İş
+
+Karar
+
+Gerekçe
+
+3D model, rig, GLB, döndürme ve 3D katalog
+
+İptal
+
+Yerine her harekette GIF hedefi var.
+
+Tüm GIF’leri APK içine koymak
+
+Yapılmayacak
+
+Güncelleme, depolama ve trafik yükünü artırır.
+
+Antrenörü sınırsız admin yapmak
+
+Yapılmayacak
+
+Ayrı arayüz ile geniş veri yetkisi aynı şey değil.
+
+Üye arayüzünü yeniden tasarlamak
+
+Yapılmayacak
+
+0.11.7–0.11.9 davranışı korunacak.
+
+Canlı çevrimiçi durumu ve mesaj ekleri
+
+Çekirdek kapsam dışında
+
+İlk panel görevlerine göre düşük öncelik ve ek güvenlik yükü.
+
+Electron veya Tauri paketi
+
+İhtiyaç kanıtına kadar ertelendi
+
+Masaüstü antrenör işini web paneli karşılıyor.
+
+Turnike, aidat, POS, muhasebe ve ERP
+
+Ayrı entegrasyon hattı
+
+Donanım ve işletme sistemi kapsamı çekirdekten farklı.
+
+PT rezervasyon ve ödeme sistemi
+
+Talep doğrulamasına bırakıldı
+
+Antrenman takvimiyle aynı ürün değil.
+
+AI program yazarı ve otomatik antrenör
+
+Çekirdek dışında
+
+Önce antrenörün program hazırlama ve takip işi doğrulanacak.
+
+Gelişmiş interval türleri
+
+Temel superset sonrası değerlendirilecek
+
+Oynatıcı karmaşıklığı ölçülmeden kapsam büyütülmeyecek.
+
+
+
+12 İlk geliştirici görevi ve kaynaklar
+
+İlk görev
+
+FitTrack Beta 0.11.9 / versionCode 26 / yerel şema 14’ü başlangıç al. Önce yalnız Kapı 0 ve 0.12.0 A adımını ele al. Gerçek APK ve kaynak ZIP’i devir hashleriyle doğrula; 9 Eylül UI ZIP’ini uygulama kaynağı sanma. Eksik kaynak veya imza erişimini açık engel olarak bildir. Mevcut davranışları, native çağrıları ve depolama yerlerini envanterle; temiz bağımlılık kurulumu ve mevcut testleri çalıştır. Normal giriş e-posta ve şifre olarak kalsın; kayıt doğrulaması ve açıkça istenen kurtarma kodla yapılsın. Üye UI, tek ana kaydırıcı, açıklamanın açık başlaması, kilo kartı, sabit tamamla, taslak ve snapshot davranışlarını koru. Yeni panel, yeni hareket şeması veya GIF kataloğu kodlama. Sonuçta değişiklik listesi, kanıtlar, çalıştırılmayan testler, engeller ve 0.12.0 B için önerilen en küçük taşıma kapsamını ver. A kabulü kapanınca B görevini ayrı başlat. İmza anahtarı, parola veya sunucu sırlarını kaynağa ve sohbete yazma.
+
+Doğrulama kimlikleri
+
+Girdi
+
+Devir raporundaki değer
+
+Paket ve API
+
+com.fittracklabs.mobile; minimum 24, hedef 36
+
+Auth deep link
+
+com.fittracklabs.mobile://auth-callback
+
+APK SHA 256
+
+4035b4f07308f85831d2e6b02db7f104d0d46a949c8f45da09940d8fd9f46e23
+
+Kaynak ZIP SHA 256
+
+7bf6883635206fcd18a40f970a60280055a725159fffbbe646fafd71969745a4
+
+Sertifika SHA 256
+
+38:A4:AB:A9:51:48:DF:CF:9C:67:B9:36:FB:02:68:B5:88:78:A1:D2:2D:67:EF:78:96:89:87:9C:75:6C:C4:CE
+
+
+
+Proje kaynakları
+
+FITTRACK_ALPER_CHATGPT_DEVIR_v0.11.6_THEME_PACK.md
+
+FITTRACK_ALPER_CHATGPT_DEVIR_v0.11.7.md
+
+FITTRACK_ALPER_CHATGPT_DEVIR_v0.11.8.md
+
+FITTRACK_ALPER_CHATGPT_DEVIR_v0.11.9.md
+
+FitTrack_Berke_Paylasim_Guncel_2026-09-09.zip içindeki ekranlar, KARAR_NOTLARI ve TEMA_STANDARDI
+
+Önceki ürün yol haritası Revizyon 5 ve bu revizyondaki GIF, paket bölme ve platform kararları
+
+Bu planın başarı ölçütü az sürüm numarası veya tek istemde çok kod değildir. Kabulü geçmiş kullanılabilir iş, korunmuş kullanıcı verisi ve tekrar üretilebilir teslimdir. Takvim ve sıfır hata garantisi verilmez.

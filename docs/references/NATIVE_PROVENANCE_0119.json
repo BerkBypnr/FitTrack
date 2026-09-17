@@ -1,0 +1,21 @@
+{
+  "source_origin": "User-supplied original FitTrack 0.11.3 APK and Source ZIP, not Alper rebuild",
+  "source_zip_sha256": "c4dd41288e5049f0affde4be25d6fc78e9139fad6c53d5d0ce2c7d0f1146406f",
+  "original_apk_sha256": "6b4c30411f362ae032e49f3dd792df7606c60638754816d86dfe7647599eca22",
+  "native_source_form": "Apktool 2.12.1 decoded XML/resources + Smali; no original Gradle/Java/Kotlin project",
+  "native_smali_files": 5536,
+  "new_version": "0.11.9",
+  "new_version_code": 26,
+  "runtime_changes": "Remove nested guidance scrolling, height cap and scroll chaining containment. Remove redundant description tab stops. Guidance and set entry share the main workout scroller; default-open details and fixed completion remain. Themes, native and other runtime behavior preserved.",
+  "previous_release": "0.11.8",
+  "previous_release_apk_sha256": "d44da775e7a6fca6c5c104df7330695ffe422b001b6fe729d77138c8ffa57f4b",
+  "signed_apk_sha256": "4035b4f07308f85831d2e6b02db7f104d0d46a949c8f45da09940d8fd9f46e23",
+  "unsigned_apk_sha256": "5d93458602241d4d6246c3124a1af83227b59956dd9a7d27e089f00530b6b85d",
+  "signature_status": "Verified with official Android apksig: v1=true, v2=true. Same original beta certificate as 0.11.8.",
+  "apktool_source": "https://github.com/iBotPeaches/Apktool/releases/tag/v2.12.1",
+  "apktool_sha256": "66cf4524a4a45a7f56567d08b2c9b6ec237bcdd78cee69fd4a59c8a0243aeafa",
+  "certificate_sha256": "38:A4:AB:A9:51:48:DF:CF:9C:67:B9:36:FB:02:68:B5:88:78:A1:D2:2D:67:EF:78:96:89:87:9C:75:6C:C4:CE",
+  "dex_files_identical_to_previous_release": 10,
+  "phone_test": "Not run; text-origin touch scrolling, keyboard and Samsung S23 / Android 16 update require phone acceptance.",
+  "previous_release_source_zip_sha256": "85e3742f667bc0e2363e9140a7bfc98977b2b857ec617314f9fa277e1b99b77a"
+}

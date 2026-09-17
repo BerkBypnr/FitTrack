@@ -3,6 +3,7 @@
 
     <application
         android:allowBackup="false"
+        android:usesCleartextTraffic="false"
         android:enableOnBackInvokedCallback="true"
         android:icon="@drawable/fittrack_app_icon"
         android:label="@string/app_name"
@@ -16,20 +17,18 @@
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
             android:exported="true">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:host="auth-callback"
-                    android:scheme="com.fittracklabs.mobile" />
+                <data android:scheme="com.fittracklabs.mobile" android:host="auth-callback" />
             </intent-filter>
 
         </activity>
@@ -48,5 +47,4 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 </manifest>
