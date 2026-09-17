@@ -1,0 +1,277 @@
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,16 @@
+-# FitTrack Beta 0.11.9
++# FitTrack 0.12.0 UI hazırlığı — yayımlanmamış ara çalışma
++
++**Önce `docs/FITTRACK_ALPER_DEVIR_0.12.0_UI_HAZIRLIK.md` dosyasını okuyun.**
++Bu ağaçta ortak tema, antrenör özeti ve üye kartları değiştirildi. 17/17 yerel test
++grubu geçti. Standart Gradle/Capacitor taşıması, kalan tasarım ekranları ve APK
++üretimi tamamlanmadı. Sürüm etiketleri henüz 0.11.9 / 26; bu arşiv bir 0.12.0
++sürüm teslimi değildir. Eski build komutu bu hazırlığı yeni sürüme dönüştürmez.
++Berk 0.11.9'un telefonda sorunsuz çalıştığını bildirdi; yeni UI telefonda denenmedi.
++
++Aşağıdaki metin 0.11.9'un **tarihsel** README'sidir. Oradaki test/derleme ve
++değişmeyen ekran ifadeleri bu ara çalışmaya ait değildir.
++
++## Tarihsel FitTrack Beta 0.11.9
+ 
+ Taban: 0.11.8 / versionCode 25. Yeni sürüm: **0.11.9 / versionCode 26**.
+ Paket com.fittracklabs.mobile; min API 24, target API 36; yerel şema 14.
+--- a/app.js
++++ b/app.js
+@@ -97,9 +97,9 @@
+   var programs = builtInPrograms.slice();
+   var themes = {
+     "volt-discipline": { name: "Volt Discipline", copy: "Siyah ve kontrollü koyu yeşil", color: "#69b482", background: "#050706", surface: "#141e18", text: "#f4faf6", mode: "dark", browserColor: "#050706" },
+-    "crimson-graphite": { name: "Crimson Graphite", copy: "Koyu gri ve derin kırmızı", color: "#e56a7f", background: "#111214", surface: "#292c30", text: "#faf8f7", mode: "dark", browserColor: "#111214" },
+-    "plum-night": { name: "Plum Night", copy: "Koyu mürdüm ve yumuşak pembe", color: "#f0aec2", background: "#160f15", surface: "#32202d", text: "#fff8fb", mode: "dark", browserColor: "#160f15" },
+-    "redline-editorial": { name: "Redline Editorial", copy: "Kırık beyaz, siyah ve turuncu", color: "#bd3518", background: "#f4f0e8", surface: "#fffdf8", text: "#1b1916", mode: "light", browserColor: "#f4f0e8" },
++    "crimson-graphite": { name: "Crimson Graphite", copy: "Koyu gri ve derin kırmızı", color: "#e56a7f", background: "#111214", surface: "#202225", text: "#faf8f7", mode: "dark", browserColor: "#111214" },
++    "plum-night": { name: "Plum Night", copy: "Koyu mürdüm ve yumuşak pembe", color: "#f0aec2", background: "#160f15", surface: "#281923", text: "#fff8fb", mode: "dark", browserColor: "#160f15" },
++    "redline-editorial": { name: "Redline Editorial", copy: "Kırık beyaz ve belirgin kırmızı", color: "#d9362b", background: "#f4f0e8", surface: "#fffdf8", text: "#1b1916", mode: "light", browserColor: "#f4f0e8" },
+     "rosewood-strength": { name: "Rosewood Strength", copy: "Krem ve zarif bordo", color: "#8e2f50", background: "#f7f1ee", surface: "#fffaf7", text: "#251c20", mode: "light", browserColor: "#f7f1ee" },
+     "sage-motion": { name: "Sage Motion", copy: "Açık zemin ve premium koyu teal", color: "#18765c", background: "#f2f6f3", surface: "#ffffff", text: "#18231e", mode: "light", browserColor: "#f2f6f3" }
+   };
+@@ -607,7 +607,7 @@
+   }
+ 
+ 
+-  // Member-only home. Trainer screens keep their previous layout.
++  // Member home and workout behaviour remain isolated from the staff summary.
+   function homeFeatured(assigned) {
+     if (state.currentWorkout) return { program: currentProgram(), day: currentProgramDay(), workout: state.currentWorkout };
+     var entry = assigned.find(function (item) { return item.program.id === state.selectedProgramId; }) ||
+@@ -645,7 +645,7 @@
+     return '<button class="card member-coach" data-action="open-chat" data-partner-id="' + esc(coachId) + '"><span class="coach-avatar">' + esc(initials(state.gym.coach)) + '</span><span class="member-coach-copy"><strong>' + esc(state.gym.coach || "Antrenörün") + '</strong><span>' + esc(shortMessagePreview(last, currentCoachNote())) + '</span></span>' + (unread ? '<b class="unread-badge">' + unread + '</b>' : icons.arrow) + '</button>';
+   }
+   function renderHome() {
+-    if (isCloudStaff()) return renderLegacyHome();
++    if (isCloudStaff()) return renderTrainerHome();
+     var assigned = assignedPrograms(), featured = homeFeatured(assigned), hour = new Date().getHours();
+     var greeting = hour < 12 ? "Günaydın" : hour < 18 ? "İyi günler" : "İyi akşamlar";
+     screen.innerHTML = '<div class="member-home"><section class="member-greeting"><h1>' + greeting + ', ' + esc(state.profile.firstName) + '</h1><p>Kendine bugün de iyi bak.</p></section>' + renderMemberHero(featured, assigned) +
+@@ -804,24 +804,67 @@
+     var status = !last ? { key: "new", label: "Başlamadı", detail: "İlk antrenman bekleniyor" } : absence <= 3 ? { key: "active", label: "Aktif", detail: absence === 0 ? "Bugün antrenman yaptı" : absence + " gün önce antrenman yaptı" } : { key: "followup", label: "Takip et", detail: absence + " gündür antrenman yok" };
+     return { completed: completed, sessions: sessions.length, weekMinutes: sessions.reduce(function (sum, item) { return sum + safeNumber(item.duration, 0, 1440, 0); }, 0), last: last, absence: absence, status: status };
+   }
++  function trainerRoster() {
++    return state.trainer.members.filter(function (member) { return !isCloudStaff() || !member.isSelf && member.id !== currentUserId(); });
++  }
++  function memberAttention(member) {
++    var entries = memberProgramEntries(member), assignments = member.assignments || [], unread = unreadFrom(member.id);
++    // Both partial and full sessions are activity. Never infer gym attendance.
++    var history = memberHistory(member).filter(function (item) { return /^\d{4}-\d{2}-\d{2}$/.test(item.date) && item.date <= todayKey(); }).slice().sort(function (a, b) { return b.date.localeCompare(a.date); });
++    var last = history[0], age = last ? daysSince(last.date) : daysSince(member.joinedAt), reasons = [];
++    if (unread) reasons.push(unread + " okunmamış mesaj");
++    if (!assignments.length) reasons.push("Henüz program atanmadı");
++    if (age >= 7) reasons.push(last ? age + " gündür yeni antrenman kaydı görünmüyor" : "Henüz antrenman kaydı görünmüyor");
++    var label = unread ? "Yeni mesaj" : !assignments.length ? "Programsız" : age >= 7 ? "Kayıt kontrolü" : last ? "Kayıt güncel" : "Kayıt yok";
++    return { entries: entries, noProgram: !assignments.length, unread: unread, reasons: reasons, last: last,
++      score: (unread ? 40 : 0) + (!assignments.length ? 30 : 0) + (age >= 7 ? 20 : 0), label: label,
++      tone: unread ? "info" : !assignments.length || age >= 7 ? "warning" : last ? "success" : "neutral",
++      detail: reasons.join(" · ") || (last ? "Son antrenman kaydı: " + formatDate(last.date) : "İlk antrenman kaydı bekleniyor") };
++  }
++  function trainerPriorityMembers() {
++    return trainerRoster().map(function (member) { return { member: member, attention: memberAttention(member) }; })
++      .filter(function (entry) { return entry.attention.score > 0; })
++      .sort(function (a, b) { return b.attention.score - a.attention.score || memberName(a.member).localeCompare(memberName(b.member), "tr"); });
++  }
++  function renderTrainerHome() {
++    var members = trainerRoster(), priorities = trainerPriorityMembers(), todayRecords = 0, recent = [];
++    members.forEach(function (member) {
++      memberHistory(member).forEach(function (item) {
++        if (!/^\d{4}-\d{2}-\d{2}$/.test(item.date) || item.date > todayKey()) return;
++        if (item.date === todayKey()) todayRecords += 1;
++        recent.push({ member: member, record: item });
++      });
++    });
++    recent.sort(function (a, b) { return b.record.date.localeCompare(a.record.date) || memberName(a.member).localeCompare(memberName(b.member), "tr"); });
++    var noProgram = members.filter(function (member) { return memberAttention(member).noProgram; }).length;
++    screen.innerHTML = '<div class="trainer-home"><section class="trainer-home-heading"><p class="section-label">ANTRENÖR · ' + esc(state.gym.name) + '</p><h1>Merhaba, ' + esc(state.profile.firstName) + '</h1><p>Bugünün üye ve antrenman özeti.</p></section>' +
++      '<div class="trainer-overview"><button data-action="trainer-panel"><strong>' + members.length + '</strong><span>Üye</span></button><article><strong>' + todayRecords + '</strong><span>Bugünkü kayıt</span></article><button data-action="trainer-open-filter" data-filter="no-program"><strong>' + noProgram + '</strong><span>Programsız</span></button></div>' +
++      '<div class="trainer-quick-actions"><button class="primary-btn" data-action="program-studio">' + icons.dumbbell + 'Programlar</button><button class="secondary-btn" data-action="trainer-panel">' + icons.user + 'Üyeler</button></div>' +
++      '<section class="section trainer-priorities"><div class="section-head"><h2>Öncelikli üyeler <span class="trainer-count">' + priorities.length + '</span></h2><button class="text-btn" data-action="trainer-open-filter" data-filter="priority">Tüm öncelikleri gör</button></div><div class="trainer-member-list priority-member-list">' +
++      (priorities.length ? priorities.slice(0, 3).map(function (entry) { return renderTrainerMemberCard(entry.member); }).join("") : '<article class="card trainer-empty"><strong>Öncelikli işlem görünmüyor.</strong><small>Yeni mesaj ve antrenman kayıtları geldikçe bu alan güncellenir.</small></article>') + '</div></section>' +
++      renderHomeMessaging() + '<section class="section trainer-recent"><div class="section-head"><h2>Son antrenman kayıtları</h2></div><div class="trainer-recent-list">' +
++      (recent.length ? recent.slice(0, 3).map(function (entry) { return '<button data-action="trainer-member" data-member-id="' + esc(entry.member.id) + '"><span class="member-avatar">' + esc(initials(memberName(entry.member))) + '</span><span><strong>' + esc(memberName(entry.member)) + '</strong><small>' + esc(entry.record.name) + ' · ' + (entry.record.status === "partial" ? "Yarım" : "Tam") + ' · ' + formatDate(entry.record.date) + '</small></span><span class="small-arrow">' + icons.arrow + '</span></button>'; }).join("") : '<p class="trainer-data-note">Henüz antrenman kaydı görünmüyor.</p>') + '</div></section><p class="trainer-data-note">Bu özet cihazda bulunan son kayıtlara dayanır. Çevrimdışıyken yeni mesajlar ve kayıtlar henüz görünmeyebilir.</p></div>';
++  }
+   function trainerFilteredMembers() {
+     var query = String(ui.trainerQuery || "").trim().toLocaleLowerCase("tr-TR");
+-    return state.trainer.members.filter(function (member) { var metrics = memberMetrics(member); var queryMatch = !query || memberName(member).toLocaleLowerCase("tr-TR").indexOf(query) !== -1; var filterMatch = ui.trainerFilter === "all" || metrics.status.key === ui.trainerFilter; return queryMatch && filterMatch; });
++    var members = ui.trainerFilter === "priority" ? trainerPriorityMembers().map(function (entry) { return entry.member; }) : trainerRoster();
++    return members.filter(function (member) { var attention = memberAttention(member); var queryMatch = !query || memberName(member).toLocaleLowerCase("tr-TR").indexOf(query) !== -1; var filterMatch = ui.trainerFilter === "all" || ui.trainerFilter === "priority" || ui.trainerFilter === "no-program" && attention.noProgram; return queryMatch && filterMatch; });
+   }
+   function trainerHeader(title, subtitle, backAction) { return '<header class="trainer-head"><button class="back-btn" data-action="' + backAction + '" aria-label="Geri">' + icons.back + '</button><div><strong>' + esc(title) + '</strong><small>' + esc(subtitle) + '</small></div><span class="pilot-badge ' + (state.cloud && state.cloud.userId ? "cloud" : "") + '">' + (state.cloud && state.cloud.userId ? "BULUTTA" : "YEREL PİLOT") + '</span></header>'; }
+   function renderTrainerPanel() {
+     clearRestTimer(); flowLayer.classList.add("active");
+     if (ui.trainerMemberId) return renderTrainerMember(ui.trainerMemberId);
+-    var members = state.trainer.members; var filtered = trainerFilteredMembers();
+-    flowLayer.innerHTML = '<div class="full-flow trainer-flow members-flow">' + trainerHeader("Üyeler", members.length + " aktif üye", "close-trainer") + '<main class="trainer-scroll"><button class="primary-btn member-add-btn" data-cloud-action="invite-manager">+ Üye ekle</button><label class="trainer-search">' + icons.search + '<input data-trainer-search type="search" placeholder="Üye ara" value="' + esc(ui.trainerQuery) + '"></label><div class="trainer-filters"><button data-action="trainer-filter" data-filter="all" class="' + (ui.trainerFilter === "all" ? "active" : "") + '">Tümü</button><button data-action="trainer-filter" data-filter="active" class="' + (ui.trainerFilter === "active" ? "active" : "") + '">Aktif</button><button data-action="trainer-filter" data-filter="followup" class="' + (ui.trainerFilter === "followup" ? "active" : "") + '">Takip</button><button data-action="trainer-filter" data-filter="new" class="' + (ui.trainerFilter === "new" ? "active" : "") + '">Yeni</button></div><div class="trainer-member-list simple-members">' + (filtered.length ? filtered.map(renderTrainerMemberCard).join("") : '<article class="trainer-empty"><span>⌁</span><strong>Eşleşen üye yok.</strong><small>Aramayı veya filtreyi değiştir.</small></article>') + '</div></main></div>';
++    var members = trainerRoster(); var filtered = trainerFilteredMembers();
++    flowLayer.innerHTML = '<div class="full-flow trainer-flow members-flow trainer-ui-revision">' + trainerHeader("Üyeler", members.length + " üye", "close-trainer") + '<main class="trainer-scroll"><button class="primary-btn member-add-btn" data-cloud-action="invite-manager">+ Üye ekle</button><label class="trainer-search">' + icons.search + '<input data-trainer-search type="search" aria-label="Üye ara" placeholder="Üye ara" value="' + esc(ui.trainerQuery) + '"></label><div class="trainer-filters">' + [["all", "Tümü"], ["priority", "Öncelikli"], ["no-program", "Programsız"]].map(function (filter) { return '<button data-action="trainer-filter" data-filter="' + filter[0] + '" aria-pressed="' + (ui.trainerFilter === filter[0]) + '" class="' + (ui.trainerFilter === filter[0] ? "active" : "") + '">' + filter[1] + '</button>'; }).join("") + '</div><p class="trainer-data-note">Öncelikler, bu cihazdaki son mesaj ve antrenman kayıtlarına göre belirlenir.</p><div class="trainer-member-list revised-members">' + (filtered.length ? filtered.map(renderTrainerMemberCard).join("") : '<article class="trainer-empty"><span>⌁</span><strong>Eşleşen üye yok.</strong><small>Aramayı veya filtreyi değiştir.</small></article>') + '</div></main></div>';
+   }
+   function memberProgramEntries(member) {
+     var list = Array.isArray(member.assignments) ? member.assignments : [];
+     return list.map(function (assignment) { return { assignment: assignment, program: programs.find(function (item) { return item.id === assignment.programId; }) }; }).filter(function (entry) { return Boolean(entry.program); }).filter(function (entry, index, values) { return values.findIndex(function (other) { return other.program.id === entry.program.id; }) === index; });
+   }
+   function renderTrainerMemberCard(member) {
+-    var metrics = memberMetrics(member); var programCount = memberProgramEntries(member).length; var unread = unreadFrom(member.id);
+-    return '<article class="trainer-member-card"><button class="member-card-main" data-action="trainer-member" data-member-id="' + esc(member.id) + '"><span class="member-avatar">' + esc(initials(memberName(member))) + '</span><span class="member-card-copy"><strong>' + esc(memberName(member)) + (member.isSelf ? ' <i>SEN</i>' : '') + '</strong><small>' + programCount + ' antrenman atanmış</small><em>' + esc(metrics.status.detail) + '</em></span><span class="member-status ' + metrics.status.key + '">' + esc(metrics.status.label) + '</span><span class="small-arrow">' + icons.arrow + '</span></button><button class="member-chat-shortcut" data-action="open-chat" data-partner-id="' + esc(member.id) + '" aria-label="' + esc(memberName(member)) + ' adlı üyeye mesaj gönder">' + icons.message + '<span>' + (unread ? unread + ' yeni mesaj' : 'Mesaj gönder') + '</span>' + (unread ? '<b>' + unread + '</b>' : '') + '</button></article>';
++    var attention = memberAttention(member), entries = attention.entries, name = memberName(member);
++    var programCopy = entries.length ? entries[0].program.name + (entries.length > 1 ? " · +" + (entries.length - 1) + " program" : "") : attention.noProgram ? "Program atanmadı" : "Program bilgisi bekleniyor";
++    return '<article class="trainer-member-card revised-member-card"><button class="member-card-main" data-action="trainer-member" data-member-id="' + esc(member.id) + '" aria-label="' + esc(name) + ' üye detayını aç"><span class="member-avatar">' + esc(initials(name)) + '</span><span class="member-card-copy"><strong>' + esc(name) + (member.isSelf ? ' <i>SEN</i>' : '') + '</strong><span class="trainer-state trainer-state-' + attention.tone + '">' + esc(attention.label) + '</span></span><span class="small-arrow">' + icons.arrow + '</span></button><div class="trainer-member-summary"><p>' + esc(programCopy) + '</p><small>' + esc(attention.detail) + '</small></div><div class="trainer-card-actions"><button class="secondary-btn" data-action="' + (attention.noProgram ? "trainer-assign-shortcut" : "trainer-member") + '" data-member-id="' + esc(member.id) + '">' + (attention.noProgram ? "Program ata" : "Üyeyi aç") + '</button><button class="secondary-btn member-chat-shortcut" data-action="open-chat" data-partner-id="' + esc(member.id) + '" aria-label="' + esc(name) + ' adlı üyeye mesaj gönder">' + icons.message + '<span>' + (attention.unread ? "Yanıtla" : "Mesaj") + '</span>' + (attention.unread ? '<b>' + attention.unread + '</b>' : '') + '</button></div></article>';
+   }
+   function trainerProgramDayChips(program) { return programDays(program).map(function (day) { return '<div class="program-day-chip-group"><b>' + esc(day.name) + (day.weekday == null ? "" : " · " + weekdayName(day.weekday)) + '</b>' + day.exercises.map(function (item) { return '<span>' + esc(item.name) + ' · ' + item.sets + ' set</span>'; }).join("") + '</div>'; }).join(""); }
+   function renderTrainerMember(id) {
+@@ -1768,6 +1811,8 @@
+     else if (action === "trainer-dashboard") { ui.trainerMemberId = ""; ui.editorDraft = null; renderTrainerPanel(); }
+     else if (action === "trainer-member") { ui.trainerMemberId = button.dataset.memberId; renderTrainerPanel(); }
+     else if (action === "trainer-filter") { ui.trainerFilter = button.dataset.filter; renderTrainerPanel(); }
++    else if (action === "trainer-open-filter") { if (!canUseTrainerPanel()) return; ui.trainerMemberId = ""; ui.trainerQuery = ""; ui.trainerFilter = ["all", "priority", "no-program"].indexOf(button.dataset.filter) >= 0 ? button.dataset.filter : "all"; renderTrainerPanel(); }
++    else if (action === "trainer-assign-shortcut") { if (!canUseTrainerPanel()) return; ui.trainerMemberId = button.dataset.memberId; renderTrainerPanel(); var assignmentSelect = document.getElementById("trainerProgram"); if (assignmentSelect) assignmentSelect.scrollIntoView({ block: "center", behavior: "smooth" }); }
+     else if (action === "assign-program") assignTrainerProgram(button.dataset.memberId);
+     else if (action === "unassign-program") unassignTrainerProgram(button.dataset.memberId, button.dataset.programId);
+     else if (action === "save-member-note") saveMemberNote(button.dataset.memberId);
+--- a/scripts/test.cjs
++++ b/scripts/test.cjs
+@@ -1,7 +1,7 @@
+ 'use strict';
+ const {spawnSync}=require('node:child_process'),fs=require('node:fs'),path=require('node:path');
+ const root=path.resolve(__dirname,'..');fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
+-const suites=['fixes-01031','fixes-01032','fixes-0110','fixes-0111','fixes-0112','fixes-0113','regression-0102','runtime-0110','review/review','hotfix-0114','auth-0116','database-0114','themes-0116','member-ui-0117','navigation-0118','migration-baseline-0120'];
++const suites=['fixes-01031','fixes-01032','fixes-0110','fixes-0111','fixes-0112','fixes-0113','regression-0102','runtime-0110','review/review','hotfix-0114','auth-0116','database-0114','themes-0116','member-ui-0117','navigation-0118','migration-baseline-0120','trainer-ui-0120'];
+ const results=[];
+ for(const suite of suites){const result=spawnSync(process.execPath,[path.join(root,'tests',suite+'.cjs')],{cwd:root,encoding:'utf8',timeout:120000});const passed=result.status===0;results.push({suite,status:passed?'PASS':'FAIL',error:result.error?.message||null});fs.writeFileSync(path.join(root,'test-results',suite.replaceAll('/','-')+'.log'),result.stdout+result.stderr);console.log(passed?'PASS':'FAIL',suite);if(!passed)console.error((result.stdout+result.stderr).slice(0,2000));}
+ fs.writeFileSync(path.join(root,'test-results/suites.json'),JSON.stringify({node:process.version,method:'Local VM, DOM model, static native checks and PGlite PostgreSQL; no real browser/phone/SMTP',results},null,2));process.exitCode=results.some(r=>r.status==='FAIL')?1:0;
+--- a/styles.css
++++ b/styles.css
+@@ -1,5 +1,8 @@
+ :root {
+   color-scheme: dark;
++  --status-success: #89cfaa;
++  --status-warning: #edc17b;
++  --status-info: #9bc6f0;
+   --bg: #050706;
+   --bg-soft: #090d0a;
+   --surface: #0e1511;
+@@ -1662,7 +1665,7 @@
+   --muted: #b4aca9;
+   --muted-2: #827b79;
+   --mint: #e56a7f;
+-  --mint-strong: #ba334b;
++  --mint-strong: #a8253e;
+   --mint-soft: rgba(197, 49, 75, .17);
+   --accent-2: #701122;
+   --primary-start: #a8253e;
+@@ -1736,13 +1739,13 @@
+   --text: #1b1916;
+   --muted: #69645c;
+   --muted-2: #8d877e;
+-  --mint: #bd3518;
+-  --mint-strong: #9e2a13;
+-  --mint-soft: rgba(239, 74, 36, .12);
+-  --accent-2: #f28a3b;
+-  --primary-start: #f15a32;
+-  --primary-end: #e84a25;
+-  --on-accent: #21100a;
++  --mint: #d9362b;
++  --mint-strong: #b92520;
++  --mint-soft: #f8ddd8;
++  --accent-2: #b92520;
++  --primary-start: #d9362b;
++  --primary-end: #b92520;
++  --on-accent: #ffffff;
+   --blue: #3f7080;
+   --amber: #a66319;
+   --danger: #b42335;
+@@ -3946,3 +3949,65 @@
+ .editor-recovery{display:grid;gap:12px;padding:18px;margin-bottom:16px}.editor-undo{margin:8px 0 16px}.studio-catalog-footer{display:flex;flex-wrap:wrap;gap:10px}.studio-catalog-footer>span{flex-basis:100%}.studio-catalog-footer>button{flex:1}.catalog-choice[aria-pressed="true"]{outline:2px solid var(--accent,#76f5a4);outline-offset:-2px}
+ 
+ #authOtp{font-size:28px;letter-spacing:.18em;text-align:center;font-variant-numeric:tabular-nums}.auth-notice[role="alert"]{overflow-wrap:anywhere}.auth-copy{overflow-wrap:anywhere}
++
++/* 0.12.0 UI preparation: trainer summary and member cards, 2026-09-09 reference. */
++html[data-mode="light"] {
++  --status-success: #216546;
++  --status-warning: #875417;
++  --status-info: #295f90;
++}
++.trainer-home-heading { padding: 8px 0 20px; }
++.trainer-home-heading h1 { font-size: clamp(25px, 7vw, 32px); line-height: 1.2; overflow-wrap: anywhere; }
++.trainer-home-heading > p:last-child { margin: 0; color: var(--muted); font-size: 14px; }
++.trainer-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
++.trainer-overview > * { min-width: 0; padding: 17px 8px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); text-align: center; }
++.trainer-overview strong, .trainer-overview span { display: block; }
++.trainer-overview strong { font-size: 26px; font-variant-numeric: tabular-nums; }
++.trainer-overview span { margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.4; }
++.trainer-quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
++.trainer-quick-actions button { min-width: 0; display: flex; justify-content: center; align-items: center; gap: 8px; }
++.trainer-quick-actions svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
++.trainer-home .section-head { gap: 10px; flex-wrap: wrap; align-items: center; }
++.trainer-home .section-head h2 { margin: 0; font-size: 21px; line-height: 1.3; }
++.trainer-home .section-head .text-btn { min-height: 44px; font-size: 12px; text-align: left; }
++.trainer-count { padding: 3px 7px; border-radius: 8px; background: var(--surface-2); color: var(--muted); font-size: 13px; vertical-align: middle; }
++.trainer-member-list.revised-members, .trainer-member-list.priority-member-list { display: grid; gap: 14px; }
++.trainer-member-card.revised-member-card { display: block; padding: 0; border: 1px solid var(--line-strong); border-radius: 19px; background: var(--surface); }
++.revised-member-card .member-card-main { min-height: 86px; padding: 16px 16px 10px; grid-template-columns: 54px minmax(0, 1fr) 20px; gap: 12px; }
++.revised-member-card .member-avatar, .trainer-recent .member-avatar { background: var(--surface-3); color: var(--text); border: 1px solid var(--line); box-shadow: none; }
++.revised-member-card .member-avatar { width: 54px; height: 54px; border-radius: 18px; }
++.revised-member-card .member-card-copy { min-width: 0; }
++.revised-member-card .member-card-copy strong { white-space: normal; overflow-wrap: anywhere; font-size: 17px; line-height: 1.3; }
++.trainer-state { display: inline-block; margin-top: 7px; padding: 4px 7px; border-radius: 7px; font-size: 11px; font-weight: 750; line-height: 1.4; }
++.trainer-state-info { color: var(--status-info); background: color-mix(in srgb, var(--status-info) 12%, var(--surface)); }
++.trainer-state-warning { color: var(--status-warning); background: color-mix(in srgb, var(--status-warning) 12%, var(--surface)); }
++.trainer-state-success { color: var(--status-success); background: color-mix(in srgb, var(--status-success) 12%, var(--surface)); }
++.trainer-state-neutral { color: var(--muted); background: var(--surface-2); }
++.trainer-member-summary { padding: 0 16px 14px; overflow-wrap: anywhere; }
++.trainer-member-summary p { margin: 0 0 6px; color: var(--text); font-size: 14px; font-weight: 650; line-height: 1.45; }
++.trainer-member-summary small { display: block; color: var(--muted); font-size: 12px; line-height: 1.55; }
++.trainer-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 0 16px 16px; }
++.trainer-card-actions .secondary-btn { min-width: 0; min-height: 44px; margin: 0; padding: 9px; border: 1px solid var(--line-strong); border-radius: 11px; background: var(--surface-2); color: var(--text); font-size: 13px; }
++.trainer-card-actions .member-chat-shortcut { display: flex; justify-content: center; gap: 6px; }
++.trainer-card-actions .member-chat-shortcut svg { width: 17px; }
++.trainer-card-actions .member-chat-shortcut b { margin-left: 0; background: var(--surface-3); color: var(--text); }
++.trainer-ui-revision .trainer-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
++.trainer-ui-revision .trainer-filters button { min-width: 0; padding-inline: 5px; }
++.trainer-data-note { margin: 12px 0 16px; color: var(--muted); font-size: 12px; line-height: 1.6; }
++.trainer-home .home-message-card { background: var(--surface); border-color: var(--line); }
++.trainer-home .home-message-card h3 { font-size: 16px; }
++.trainer-home .home-message-card .coach-avatar { color: var(--text); background: var(--surface-3); }
++.trainer-recent-list { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); overflow: hidden; }
++.trainer-recent-list > button { display: grid; grid-template-columns: 38px minmax(0, 1fr) 18px; gap: 10px; width: 100%; padding: 14px; text-align: left; }
++.trainer-recent-list > button + button { border-top: 1px solid var(--line); }
++.trainer-recent-list .member-avatar { width: 38px; height: 38px; font-size: 12px; }
++.trainer-recent-list strong { display: block; font-size: 14px; overflow-wrap: anywhere; }
++.trainer-recent-list small { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
++.trainer-recent-list .small-arrow svg { width: 18px; }
++.trainer-recent-list > .trainer-data-note { padding: 0 14px; }
++@media (max-width: 360px) {
++  .trainer-card-actions { padding-inline: 12px; gap: 6px; }
++  .revised-member-card .member-card-main { padding-inline: 12px; gap: 8px; grid-template-columns: 48px minmax(0, 1fr) 18px; }
++  .revised-member-card .member-avatar { width: 48px; height: 48px; }
++  .trainer-member-summary { padding-inline: 12px; }
++}
+--- a/tests/fixes-0111.cjs
++++ b/tests/fixes-0111.cjs
+@@ -17,7 +17,8 @@
+ assert(backCallback.includes('const-string v0, "true"') && backCallback.includes("moveTaskToBack"), "Kök ekranda uygulamayı arkaya alma geri dönüşü eksik.");
+ 
+ assert(app.includes("function renderHomeMessaging()") && app.includes("function renderChatInbox()"), "Ana sayfa mesaj merkezi eksik.");
+-assert(app.includes('class="member-chat-shortcut"') && app.includes("Üyeye mesaj gönder"), "Antrenör paneli hızlı mesaj eylemi eksik.");
++// The revised card also uses secondary-btn; assert the chat action, not a sole CSS class.
++assert(/class="[^"]*\bmember-chat-shortcut\b[^"]*" data-action="open-chat"/.test(app) && app.includes("Üyeye mesaj gönder"), "Antrenör paneli hızlı mesaj eylemi eksik.");
+ assert(app.includes('title: "Yeni mesajın var"') && app.includes("localNotificationActionPerformed"), "Yeni mesaj yerel bildirimi veya bildirime dokunma akışı eksik.");
+ assert(app.includes("item.recipientId === currentUserId()"), "Mesaj bildirimi alıcıya göre filtrelenmiyor.");
+ 
+--- a/tests/member-ui-0117.cjs
++++ b/tests/member-ui-0117.cjs
+@@ -30,7 +30,8 @@
+ test('Featured card preserves active workout progress and paused status',()=>{const r=fresh();setupWorkout(r);r.app.getCurrentLog().completedAt=new Date().toISOString();r.app.pauseWorkout();r.app.renderHome();const d=dom(r.elements.screen.innerHTML);assert.ok(d.body.textContent.includes('Duraklatıldı'));assert.equal(d.querySelector('[role="progressbar"]').getAttribute('aria-valuenow'),'33');assert.ok(d.querySelector('[data-action="start"]'));});
+ test('Removed assignment keeps recovery and cancel controls on home',()=>{const r=fresh();const p=setupWorkout(r);r.app.state.assignments=[];r.app.state.assignment=null;r.app.state.customPrograms=[];r.app.refreshPrograms();r.app.renderHome();const d=dom(r.elements.screen.innerHTML);assert.ok(d.body.textContent.includes(p.name));assert.ok(d.querySelector('[data-action="start"]'));assert.ok(d.querySelector('[data-action="confirm-cancel"]'));r.click('start');r.click('confirm-cancel');r.click('cancel-workout');assert.equal(r.app.state.currentWorkout,null);});
+ test('Multiple assignments remain accessible; opening home does not select a different one',()=>{const r=fresh();const p=setupWorkout(r);r.app.closeCurrentWorkout();const q=r.app.normalizeCustomProgram({...clone(p),id:'second-plan',name:'Second program'});r.app.state.customPrograms.push(q);r.app.refreshPrograms();r.app.state.assignments.push(r.app.normalizeAssignment({programId:q.id},1,'Coach'));const before=r.app.state.selectedProgramId;r.app.renderHome();assert.ok(dom(r.elements.screen.innerHTML).querySelector('.member-all-programs[data-tab="programs"]'));assert.equal(r.app.state.selectedProgramId,before);r.click('nav',{tab:'programs'});assert.equal(dom(r.elements.screen.innerHTML).querySelectorAll('.assigned-program-card').length,2);});
+-test('Staff home remains the legacy layout',()=>{const r=fresh();r.app.state.cloud.role='trainer';r.app.renderHome();assert.equal(dom(r.elements.screen.innerHTML).querySelector('.member-home'),null);assert.ok(dom(r.elements.screen.innerHTML).querySelector('.home-workouts'));});
++// 0.12.0 changes the staff home by request; keep the member/staff separation gate.
++test('Staff summary remains separate from the member workout home',()=>{const r=fresh();r.app.state.cloud.role='trainer';r.app.renderHome();assert.equal(dom(r.elements.screen.innerHTML).querySelector('.member-home'),null);assert.ok(dom(r.elements.screen.innerHTML).querySelector('.trainer-home'));});
+ test('Member stylesheet parses and has no selectors that restyle trainer screens',()=>{
+  const sheet=require('cssom').parse(fs.readFileSync(path.join(root,'member-ui.css'),'utf8')),selectors=[];
+  const visit=rules=>{for(const rule of rules){if(rule.cssRules)visit(rule.cssRules);if(rule.selectorText)selectors.push(...rule.selectorText.split(',').map(s=>s.trim().replace(/::[\w-]+/g,'')));}};visit(sheet.cssRules);

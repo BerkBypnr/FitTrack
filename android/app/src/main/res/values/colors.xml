@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="fittrack_background">#FF080B10</color>
+    <color name="fittrack_background">#080b10</color>
+    <color name="colorPrimary">#050706</color>
+    <color name="colorPrimaryDark">#050706</color>
+    <color name="colorAccent">#69b482</color>
 </resources>

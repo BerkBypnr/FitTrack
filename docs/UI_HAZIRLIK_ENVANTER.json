@@ -1,0 +1,120 @@
+{
+  "checkpoint": "0.12.0 UI preparation; not a release",
+  "baseline": "0.11.9 plus 0.12.0 A preparation",
+  "changed_existing_files": [
+    "README.md",
+    "app.js",
+    "scripts/test.cjs",
+    "styles.css",
+    "tests/fixes-0111.cjs",
+    "tests/member-ui-0117.cjs"
+  ],
+  "added_files": [
+    "docs/FITTRACK_0.12.0_TEST_LISTESI.md",
+    "docs/FITTRACK_ALPER_DEVIR_0.12.0_UI_HAZIRLIK.md",
+    "docs/references/ANTRENOR_UI_KARAR_NOTLARI.md",
+    "docs/references/ANTRENOR_UI_REFERANS_2026-09-09.zip",
+    "docs/references/DEVIR_ORNEGI_v0.11.7.md",
+    "docs/references/FITTRACK_ALPER_CHATGPT_DEVIR_v0.11.9.md",
+    "docs/references/TEMA_STANDARDI.md",
+    "docs/references/YOL_HARITASI_REV6_METIN.txt",
+    "docs/references/YOL_HARITASI_REV6_ORIJINAL.docx",
+    "tests/trainer-ui-0120.cjs"
+  ],
+  "removed_files": [],
+  "unchanged_native_files": 6053,
+  "unchanged_supabase_files": 16,
+  "apk_produced": false,
+  "version_metadata": "0.11.9 / code 26 / schema 14 unchanged",
+  "tests": {
+    "node": "v24.19.0",
+    "method": "Local VM, DOM model, static native checks and PGlite PostgreSQL; no real browser/phone/SMTP",
+    "results": [
+      {
+        "suite": "fixes-01031",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "fixes-01032",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "fixes-0110",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "fixes-0111",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "fixes-0112",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "fixes-0113",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "regression-0102",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "runtime-0110",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "review/review",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "hotfix-0114",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "auth-0116",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "database-0114",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "themes-0116",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "member-ui-0117",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "navigation-0118",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "migration-baseline-0120",
+        "status": "PASS",
+        "error": null
+      },
+      {
+        "suite": "trainer-ui-0120",
+        "status": "PASS",
+        "error": null
+      }
+    ]
+  }
+}

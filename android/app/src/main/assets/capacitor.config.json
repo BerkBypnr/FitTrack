@@ -3,16 +3,23 @@
 	"appName": "FitTrack",
 	"webDir": "www",
 	"server": {
-		"androidScheme": "https"
+		"androidScheme": "https",
+		"hostname": "localhost"
 	},
 	"android": {
 		"allowMixedContent": false,
-		"backgroundColor": "#080b10",
+		"backgroundColor": "#050706",
 		"webContentsDebuggingEnabled": false
 	},
 	"plugins": {
+		"App": {
+			"disableBackButtonHandler": true
+		},
+		"SystemBars": {
+			"insetsHandling": "css"
+		},
 		"LocalNotifications": {
-			"iconColor": "#8fffb1"
+			"iconColor": "#69b482"
 		}
 	}
 }
