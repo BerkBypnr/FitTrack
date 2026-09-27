@@ -20,6 +20,8 @@ jobs:
           test -x "$sdkmanager_path"
           "$sdkmanager_path" "platforms;android-36" "build-tools;35.0.0" "build-tools;36.0.0"
       - run: npm ci --ignore-scripts
+      - name: Prepare generated output directories
+        run: mkdir -p test-results out
       - run: node --check app.js
       - run: node --check cloud.js
       - run: npm run test:runtime
