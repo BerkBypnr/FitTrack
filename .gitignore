@@ -1,28 +1,31 @@
-# JavaScript dependencies
 node_modules/
-
-# Android machine-local files and build caches
-android/.gradle/
-android/.kotlin/
-android/local.properties
-android/**/build/
-*.iml
-.idea/
-
-# Signing material and secrets
-*.jks
-*.keystore
-*.p12
-*.pem
+graft/
+.local-tools/
+out/
+test-results/
+.build-tools/
 .env
 .env.*
 !.env.example
-
-# Build outputs and temporary files
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
 *.apk
 *.aab
+*.iml
 *.log
+.idea/
 .DS_Store
 Thumbs.db
 tmp/
 temp/
+__pycache__/
+*.pyc
+www/
+.gradle/
+.kotlin/
+android/**/build/
+android/local.properties
+supabase/.temp/

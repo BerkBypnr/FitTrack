@@ -1,0 +1,15 @@
+{
+  "base_version": "0.14.0",
+  "source_and_visual_reference_sha256": {
+    "upload/01-FitTrack-Final-UI-Temiz-Paket-v1.zip": "4990eaa5fc570f6fec059bc3e6dd41abbe1df153171b8bf5f252e787af71e9c2",
+    "restored-0140/FitTrack-v0.14.0/FitTrack-Beta-0.14.0-Source.zip": "f99dab93a3f0a00777997800a1ab541479fdac71dc0863defb8d03a2b0a7f817"
+  },
+  "priority": [
+    "User: light theme deliberate; layout must match final boards; text larger",
+    "Approved final FT logo and dumbbell welcome override obsolete woman in ZIP",
+    "06_Aktif_Antrenman_FINAL.png",
+    "08_Antrenman_Inceleme_Duzenleme_Kutuphane_FINAL.png: history panel",
+    "01_Acilis_Uye_Ana_Sayfasi_Antrenman_Ozeti_FINAL.png: summary panel"
+  ],
+  "deferred": "Remaining member 0.15; trainer 0.16"
+}

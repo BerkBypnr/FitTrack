@@ -12,11 +12,17 @@
   var realtimeTopic = "";
   var offlineSessionOnly = false;
   var flushPromise = null;
+  var contextEpoch = 0;
+  var retryTimer = null;
   var stateTimer = null;
   var bootstrapTimer = null;
   var authLayer = null;
   var lastInvite = "";
   var appUrlListener = null;
+  var pendingOtp = null;
+  var otpSequence = 0;
+  var otpSubmitting = false;
+  var recoveryVerified = false;
   var DEVICE_KEY = "fittrack-beta-010-device-id";
   var ACTIVE_GYM_KEY = "fittrack-beta-010-active-gym";
   var LAST_INVITE_KEY = "fittrack-beta-010-last-invite";
@@ -88,22 +94,37 @@
     return LAST_INVITE_KEY + "-" + (session && session.user ? session.user.id : "signed-out") + "-" + (gym ? gym.id : "none");
   }
 
-  function queue() { return readJson(queueKey(), []); }
-  function saveQueue(items) { writeJson(queueKey(), items.slice(-250)); updateStatus(); }
-
-  function enqueue(type, payload, stableId) {
-    var items = queue();
-    var id = stableId || type + ":" + uuid();
-    var existing = items.findIndex(function (item) { return item.id === id; });
-    var next = { id: id, type: type, payload: payload, attempts: existing >= 0 ? items[existing].attempts : 0, createdAt: new Date().toISOString() };
-    if (existing >= 0) items[existing] = next;
-    else items.push(next);
-    saveQueue(items);
-    return id;
+  function captureContext() { return { userId: session && session.user && session.user.id || "", gymId: gym && gym.id || "", epoch: contextEpoch, deviceId: deviceId(), role: membership && membership.role, rolePreference: profile && profile.role_preference }; }
+  function contextMatches(ctx) { return Boolean(ctx && session && session.user && ctx.userId === session.user.id && ctx.gymId === (gym && gym.id || "") && ctx.epoch === contextEpoch); }
+  function assertContext(ctx) { if (!contextMatches(ctx)) throw new Error("CONTEXT_CHANGED"); }
+  function itemContext(item) { var ctx = captureContext(); if (item.userId) ctx.userId = item.userId; if (item.gymId) ctx.gymId = item.gymId; return ctx; }
+  function scopedSnapshotKey(ctx) { return SNAPSHOT_PREFIX + ctx.userId + "-" + ctx.gymId; }
+  function queue() {
+    var items = readJson(queueKey(), []); if (!Array.isArray(items)) return [];
+    var userId = session && session.user && session.user.id || "signed-out";
+    var cache = readJson("fittrack-beta-010-user-" + userId, {});
+    return items.map(function (item) {
+      if (item.userId && item.gymId && item.revision) return item;
+      var idParts = String(item.id || "").split(":");
+      var originGym = item.gymId || item.payload && item.payload.state && item.payload.state.gym && item.payload.state.gym.id || (["snapshot", "note", "program", "assignment", "unassignment", "message-read"].indexOf(item.type) >= 0 && idParts.length >= 3 ? idParts[1] : cache.cloud && cache.cloud.gymId || "");
+      return Object.assign({}, item, { userId: item.userId || userId, gymId: originGym, revision: item.revision || "legacy:" + item.createdAt + ":" + JSON.stringify(item.payload) });
+    });
   }
 
-  function removeQueueItem(id) {
-    saveQueue(queue().filter(function (item) { return item.id !== id; }));
+  function saveQueue(items, key) { localStorage.setItem(key || queueKey(), JSON.stringify(items)); if (!key || key === queueKey()) updateStatus(); }
+
+  function enqueue(type, payload, stableId) {
+    var ctx = captureContext(); if (!ctx.userId) throw new Error("AUTH_REQUIRED");
+    var items = queue(); var id = stableId || type + ":" + uuid();
+    var existing = items.findIndex(function (item) { return item.id === id && item.gymId === ctx.gymId; });
+    var next = { id: id, revision: uuid(), userId: ctx.userId, gymId: ctx.gymId, type: type, payload: JSON.parse(JSON.stringify(payload)), attempts: 0, createdAt: new Date().toISOString() };
+    if (existing >= 0) items[existing] = next; else items.push(next);
+    saveQueue(items); return id;
+  }
+
+  function removeQueueItem(id, revision, key) {
+    var items = key && key !== queueKey() ? readJson(key, []) : queue();
+    saveQueue(items.filter(function (item) { return item.id !== id || item.revision !== revision; }), key);
   }
 
   function ensureLayer() {
@@ -120,32 +141,52 @@
 
   function showLayer(content, modal) {
     ensureLayer();
+    clearOtpCountdown();
     authLayer.className = "auth-layer active" + (modal ? " modal" : "");
     authLayer.innerHTML = content;
-    var focus = authLayer.querySelector("input:not([type=hidden]), button");
+    ["app", "flowLayer", "sheetLayer"].forEach(function (id) { var element = document.getElementById(id); if (element) element.inert = true; });
+    var focus = authLayer.querySelector("h1[tabindex]");
     if (focus) window.setTimeout(function () { focus.focus(); }, 80);
   }
 
   function hideLayer() {
     ensureLayer();
+    clearOtpCountdown();
     authLayer.className = "auth-layer";
     authLayer.innerHTML = "";
+    ["app", "flowLayer", "sheetLayer"].forEach(function (id) { var element = document.getElementById(id); if (element) element.inert = false; });
   }
 
-  function shell(kicker, title, copy, body) {
-    return '<div class="auth-scroll"><main class="auth-card"><div class="auth-brand"><span>⚡</span><b>FITT<em>RACK</em></b></div>' +
-      '<p class="eyebrow">' + esc(kicker) + '</p><h1>' + esc(title) + '</h1><p class="auth-copy">' + esc(copy) + '</p>' + body + '</main></div>';
+  function brand() {
+    return '<span class="ft-mark" aria-hidden="true"><svg viewBox="0 0 100 100"><path fill="#f8214b" d="M10 43C13 27 24 17 40 17H92C89 27 81 33 68 33H32C22 33 15 37 10 43Z"/><path fill="#fff" stroke="#151619" stroke-width="1.2" stroke-linejoin="round" d="M11 44C12 39 17 35 24 33L47 49L42 68L20 55C14 51 11 48 11 44Z"/><path fill="#f8214b" d="M49 49H70L61 83C59 91 52 95 42 95H37L49 49Z"/></svg></span><b>Fit<em>Track</em></b>';
+  }
+  function shell(kicker, title, copy, body, view) {
+    return '<div class="auth-scroll ' + (view || "") + '"><main class="auth-card"><div class="auth-brand">' + brand() + '</div>' +
+      (view === 'auth-otp' ? '<div class="auth-symbol">✉</div>' : view === 'auth-password' ? '<div class="auth-symbol"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>' : '') + '<p class="eyebrow">' + esc(kicker) + '</p><h1 tabindex="-1">' + esc(title) + '</h1><p class="auth-copy">' + esc(copy) + '</p>' + body + '</main></div>';
+  }
+  var explicitSignOut = false;
+  function renderSessionExpired() { showLayer(shell('', 'Yeniden giriş yap', 'Devam etmek için oturumunu yenile.', '<div class="session-expired-card"><p>Bu cihazdaki kayıtların korunur.</p><button class="primary-btn" data-cloud-action="auth-tab" data-mode="login">Giriş yap</button></div>', 'auth-session-expired')); }
+  function renderWelcome() {
+    showLayer('<div class="welcome-screen"><div class="welcome-brand">' + brand() + '</div><main class="welcome-content"><p class="welcome-eyebrow">SENİN RİTMİNDE</p><h1 tabindex="-1">Hoş geldin.</h1><p>Daha güçlü bir sen,<br>senin ritminde.</p><button class="primary-btn" data-cloud-action="auth-tab" data-mode="login">Giriş yap <span aria-hidden="true">→</span></button><button class="secondary-btn" data-cloud-action="auth-tab" data-mode="signup">Hesap oluştur <span aria-hidden="true">→</span></button><small>FitTrack · Beta ' + esc(config.appVersion || "0.13.1") + '</small></main></div>');
   }
 
   function field(id, label, type, placeholder, autocomplete) {
-    return '<div class="field"><label for="' + id + '">' + esc(label) + '</label><input id="' + id + '" name="' + id + '" type="' + type + '" placeholder="' + esc(placeholder) + '" autocomplete="' + esc(autocomplete || "off") + '" required></div>';
+    var password = type === "password";
+    return '<div class="field"><label for="' + id + '">' + esc(label) + '</label><div class="auth-input-wrap"><input id="' + id + '" name="' + id + '" type="' + type + '" placeholder="' + esc(placeholder) + '" autocomplete="' + esc(autocomplete || "off") + '" ' + (password && autocomplete === "new-password" ? 'minlength="8" ' : '') + 'required>' + (password ? '<button type="button" class="password-toggle" data-cloud-action="toggle-password" data-input="' + id + '" aria-controls="' + id + '" aria-label="Şifreyi göster" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>' : '') + '</div></div>';
   }
 
   function authError(error) {
     var message = String(error && error.message || error || "");
-    if (/invalid login credentials/i.test(message)) return "E-posta veya şifre hatalı.";
-    if (/email not confirmed/i.test(message)) return "Önce e-postana gelen doğrulama bağlantısını aç.";
+    var code = String(error && error.code || "");
+    if (/otp_expired|token.*expired|invalid.*token|invalid.*otp/i.test(code + " " + message)) return "Kod hatalı veya süresi dolmuş. Tekrar kontrol et ya da yeni kod iste.";
+    if (/rate limit|too many|over_.*rate_limit|email.*rate/i.test(code + " " + message)) return "Çok fazla istek gönderildi. Bir süre bekleyip tekrar dene.";
+    if (/signups not allowed for otp|user not found/i.test(message)) return "Kod isteği tamamlanamadı. Adresi kontrol et; hesabın yoksa Kayıt sekmesini kullan.";
+    if (code === "invalid_credentials" || /invalid login credentials/i.test(message)) return "E-posta veya şifre hatalı.";
+    if (code === "email_not_confirmed" || /email not confirmed/i.test(message)) return "E-postana gelen kodla hesabını doğrula.";
+    if (/SYNC_PENDING/.test(message)) return "İşlem cihazda saklandı; eşitlenmeyi bekliyor.";
+    if (/CONTEXT_CHANGED/.test(message)) return "Hesap veya salon değişti. İşlem kendi hesabında saklanıyor.";
     if (/user already registered/i.test(message)) return "Kayıt isteği tamamlanamadı. Giriş yapmayı veya şifre yenilemeyi dene.";
+    if (/same password|different from (the )?(old|previous)|new password should be different/i.test(message)) return "Yeni şifren eski şifrenle aynı olamaz. Farklı bir şifre belirle.";
     if (/password/i.test(message) && /characters|length|weak/i.test(message)) return "Şifre en az 8 karakter olmalı.";
     if (/network|fetch|offline/i.test(message)) return "İnternet bağlantısı kurulamadı. Yerel verilerin güvende.";
     if (/INVITE_NOT_AVAILABLE|INVALID_INVITE/i.test(message)) return "Davet kodu geçersiz, süresi dolmuş veya kullanım hakkı bitmiş.";
@@ -153,24 +194,73 @@
     return message || "İşlem tamamlanamadı. Tekrar dene.";
   }
 
-  function renderAuth(mode, notice) {
-    mode = mode || "login";
-    var signup = mode === "signup";
-    var body = '<div class="auth-tabs"><button data-cloud-action="auth-tab" data-mode="login" class="' + (!signup ? "active" : "") + '">Giriş</button><button data-cloud-action="auth-tab" data-mode="signup" class="' + (signup ? "active" : "") + '">Kayıt</button></div>' +
-      (notice ? '<p class="auth-notice">' + esc(notice) + '</p>' : '') +
-      '<form data-cloud-form="' + (signup ? "signup" : "login") + '">' +
-      (signup ? field("authName", "AD SOYAD", "text", "Adın ve soyadın", "name") : "") +
-      field("authEmail", "E-POSTA", "email", "ornek@email.com", "email") +
-      field("authPassword", "ŞİFRE", "password", "En az 8 karakter", signup ? "new-password" : "current-password") +
-      (signup ? '<label class="auth-consent"><input id="authConsent" type="checkbox" required><span>Beta gizlilik ve kullanım koşullarını okudum. Rol ve sağlık verisi izni e-posta doğrulamasından sonra sorulacak.</span></label>' : "") +
-      '<button class="primary-btn" type="submit">' + (signup ? "Hesap oluştur" : "Giriş yap") + '</button></form>' +
-      (!signup ? '<button class="auth-link" data-cloud-action="forgot-password">Şifremi unuttum</button>' : '') +
-      '<p class="auth-security">Oturum Supabase Auth ile korunur. Salon verileri rol ve salon üyeliğine göre veritabanında ayrılır.</p>';
-    showLayer(shell("BETA 0.11 · GÜVENLİ BULUT", signup ? "Gerçek hesabını oluştur." : "Kaldığın yer her cihazda.", signup ? "Önce e-postanı doğrula; rolünü ve salon bağlantını ardından seç." : "Antrenmanların, mesajların ve çevrimdışı kayıtların hesabınla eşleşir.", body));
+  function renderAuth(mode, notice, email) {
+    mode = mode || "login"; var signup = mode === "signup";
+    var body = (signup ? '<ol class="auth-steps" aria-label="Kayıt adımları"><li class="active">1 · Hesap bilgileri</li><li>2 · E-posta doğrulama</li></ol>' : '') +
+      (notice ? '<p class="auth-notice" role="alert">' + esc(notice) + '</p>' : '') + '<form data-cloud-form="' + (signup ? "signup" : "login") + '">' +
+      (signup ? field("authName", "AD SOYAD", "text", "Adın ve soyadın", "name") : '') +
+      field("authEmail", "E-POSTA", "email", "ornek@email.com", signup ? "email" : "username") +
+      field("authPassword", "ŞİFRE", "password", signup ? "En az 8 karakter" : "Şifren", signup ? "new-password" : "current-password") +
+      (signup ? field("authPasswordConfirm", "ŞİFRE TEKRAR", "password", "Şifreni tekrar yaz", "new-password") + '<label class="auth-consent"><input id="authConsent" type="checkbox" required><span>Beta gizlilik ve kullanım koşullarını okudum. Rol ve sağlık verisi izni e-posta doğrulamasından sonra sorulacak.</span></label>' : '') +
+      (!signup ? '<button type="button" class="auth-link forgot-link" data-cloud-action="forgot-password">Şifremi unuttum</button>' : '') + '<button class="primary-btn" type="submit">' + (signup ? "Hesap oluştur ve kod gönder" : "Giriş yap") + '</button></form>' +
+      '<p class="auth-switch">' + (signup ? 'Zaten hesabın var mı? ' : 'Henüz hesabın yok mu? ') + '<button data-cloud-action="auth-tab" data-mode="' + (signup ? "login" : "signup") + '">' + (signup ? "Giriş yap" : "Hesap oluştur") + '</button></p><button class="auth-link auth-back" data-cloud-action="welcome">← Karşılamaya dön</button><p class="auth-security">' + (signup ? 'Sonraki girişlerinde e-posta adresini ve şifreni kullan. Profil bilgilerini kayıt sonrasında ekleyebilirsin.' : 'Şifreni kimseyle paylaşma. Verilerin hesabına bağlı kalır.') + '</p>';
+    showLayer(shell(signup ? "SANA AİT BİR BAŞLANGIÇ" : "KALDIĞIN YERDEN", signup ? "Hesabını oluştur." : "Tekrar hoş geldin.", signup ? "Birkaç bilgiyle başlayalım." : "Antrenmanların ve hedeflerin seni bekliyor.", body, signup ? "auth-signup" : "auth-login"));
+    var input = document.getElementById("authEmail"); if (input && email) input.value = email;
   }
 
-  function renderConfirmation(email) {
-    showLayer(shell("E-POSTANI KONTROL ET", "İsteğin alındı.", email + " adresi yeni ise doğrulama bağlantısı gönderildi. Daha önce kayıt olduysan giriş yap veya şifreni yenile.", '<div class="auth-success">✓</div><button class="primary-btn" data-cloud-action="auth-tab" data-mode="login">Giriş ekranına dön</button>'));
+  function renderConfirmation(email, requestedAt, notice) {
+    pendingOtp = { email: email, kind: "signup", requestedAt: requestedAt == null ? Date.now() : requestedAt };
+    renderOtp(notice);
+  }
+  function renderOtp(notice) {
+    if (!pendingOtp) return renderAuth("login");
+    var body = (notice ? '<p class="auth-notice" role="alert">' + esc(notice) + '</p>' : '') +
+      '<form data-cloud-form="verify-otp"><div class="field"><label for="authOtp">E-POSTA KODU</label><input id="authOtp" name="authOtp" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,19}" minlength="6" maxlength="19" placeholder="E-postadaki kod" required></div><button class="primary-btn" type="submit">Kodu doğrula</button></form><button class="secondary-btn" data-cloud-action="resend-otp">Kodu yeniden gönder</button><button class="auth-link" data-cloud-action="change-otp-email">E-postayı değiştir</button>';
+    showLayer(shell("E-POSTANI KONTROL ET", pendingOtp.kind === "recovery" ? "Şifre yenileme kodu" : "E-postanı doğrula", pendingOtp.email + " adresine gelen kodu buraya yaz.", body, "auth-otp"));
+    startOtpCountdown();
+  }
+  var otpCountdown = null;
+  function clearOtpCountdown() { if (otpCountdown != null) window.clearInterval(otpCountdown); otpCountdown = null; }
+  function startOtpCountdown() {
+    function tick() {
+      var button = authLayer && authLayer.querySelector('[data-cloud-action="resend-otp"]');
+      if (!pendingOtp || !button) return clearOtpCountdown();
+      var remaining = Math.max(0, Math.ceil((pendingOtp.requestedAt + 60000 - Date.now()) / 1000));
+      button.disabled = remaining > 0;
+      button.textContent = remaining ? "Yeniden gönder · " + remaining + " sn" : "Kodu yeniden gönder";
+      if (!remaining) clearOtpCountdown();
+    }
+    otpCountdown = window.setInterval(tick, 1000); tick();
+  }
+  function renderRecovery(email, message) {
+    var body = (message ? '<p class="auth-notice" role="alert">' + esc(message) + '</p>' : '') + '<form data-cloud-form="request-recovery">' + field("recoveryEmail", "E-POSTA", "email", "ornek@email.com", "email") + '<button class="primary-btn" type="submit">Doğrulama kodu gönder</button></form><button class="auth-link" data-cloud-action="auth-tab" data-mode="login">← Girişe dön</button><p class="auth-security">E-posta kodunu doğruladıktan sonra yeni şifreni belirleyebilirsin.</p>';
+    showLayer(shell("HESABINA ERİŞ", "Şifreni yenile", "E-posta adresini gir, devam edelim.", body, "auth-recovery"));
+    var input = document.getElementById("recoveryEmail"); if (input) input.value = email || "";
+  }
+  async function requestEmailCode(email, kind) {
+    email = String(email || "").trim(); if (!validEmail(email)) throw new Error("Geçerli bir e-posta adresi yaz.");
+    if (kind !== "signup" && kind !== "recovery") throw new Error("Giriş yapmak için e-posta adresini ve şifreni kullan.");
+    if (pendingOtp && pendingOtp.email === email && Date.now() - pendingOtp.requestedAt < 60000) throw new Error("Yeni kod istemeden önce 60 saniye bekle.");
+    var sequence = ++otpSequence; var result;
+    if (kind === "signup") result = await client.auth.resend({ type: "signup", email: email, options: { emailRedirectTo: config.authRedirectTo } });
+    else if (kind === "recovery") result = await client.auth.resetPasswordForEmail(email, { redirectTo: config.authRedirectTo });
+    if (sequence !== otpSequence) return;
+    if (result.error) throw result.error;
+    pendingOtp = { email: email, kind: kind, requestedAt: Date.now() }; renderOtp();
+  }
+  async function verifyEmailCode(code) {
+    if (!pendingOtp) throw new Error("Önce e-posta kodu iste.");
+    // Keep the full server-issued code, including leading zeroes. Accept older
+    // codes while the hosted OTP length is changed to the supported minimum (6).
+    code = String(code || "").replace(/\s/g, ""); if (!/^[0-9]{6,10}$/.test(code)) throw new Error("E-postadaki kodu eksiksiz yaz. Kod 6–10 rakamdan oluşmalı.");
+    var request = pendingOtp; var sequence = otpSequence;
+    var result = await client.auth.verifyOtp({ email: request.email, token: code, type: request.kind === "recovery" ? "recovery" : "email" });
+    if (sequence !== otpSequence || pendingOtp !== request) return;
+    if (result.error) throw result.error;
+    if (!result.data || !result.data.session || !result.data.session.user) throw new Error("Kod doğrulanamadı. Yeni kod iste.");
+    pendingOtp = null; session = result.data.session;
+    if (request.kind === "recovery") { recoveryVerified = true; renderPasswordUpdate(); }
+    else { recoveryVerified = false; await handleSession(session); }
   }
 
   function validEmail(value) {
@@ -184,7 +274,7 @@
       field("newPassword", "YENİ ŞİFRE", "password", "En az 8 karakter", "new-password") +
       field("confirmPassword", "YENİ ŞİFRE TEKRAR", "password", "Şifreni tekrar yaz", "new-password") +
       '<button class="primary-btn" type="submit">Şifreyi güncelle</button></form>';
-    showLayer(shell("ŞİFRE YENİLEME", "Yeni şifreni belirle.", "Bağlantı doğrulandı. Yeni şifreni yalnız bu ekrandan kaydet.", body));
+    showLayer(shell("ŞİFRE YENİLEME", "Yeni şifreni belirle.", "Güvenli bir şifre oluştur.", body, "auth-password"));
   }
 
   function authParamsFromUrl(value) {
@@ -196,31 +286,42 @@
     return params;
   }
 
+  var authCallbackPending = new Map();
+  var lastAuthCallback = "";
   async function handleAuthCallbackUrl(value) {
-    if (!client || !value || String(value).indexOf(config.authRedirectTo) !== 0) return false;
+    if (!client || !value) return false;
+    var target, expected;
+    try { target = new URL(String(value)); expected = new URL(config.authRedirectTo); } catch (_) { return false; }
+    if (target.protocol !== expected.protocol || target.hostname !== expected.hostname || target.port !== expected.port || target.pathname !== expected.pathname || target.username || target.password) return false;
+    var key = String(value);
+    if (key === lastAuthCallback) return true;
+    if (authCallbackPending.has(key)) return authCallbackPending.get(key);
+    var operation = completeAuthCallback(key);
+    authCallbackPending.set(key, operation);
+    try { var handled = await operation; if (handled) lastAuthCallback = key; return handled; }
+    finally { authCallbackPending.delete(key); }
+  }
+  async function completeAuthCallback(value) {
     var params = authParamsFromUrl(value);
     var callbackError = params.get("error_description") || params.get("error");
     if (callbackError) throw new Error(callbackError);
-
     var authResult;
     if (params.get("code") && typeof client.auth.exchangeCodeForSession === "function") {
       authResult = await client.auth.exchangeCodeForSession(params.get("code"));
     } else if (params.get("access_token") && params.get("refresh_token")) {
-      authResult = await client.auth.setSession({
-        access_token: params.get("access_token"),
-        refresh_token: params.get("refresh_token")
-      });
+      authResult = await client.auth.setSession({ access_token: params.get("access_token"), refresh_token: params.get("refresh_token") });
     } else {
-      authResult = await client.auth.getSession();
+      throw new Error("Doğrulama bağlantısı eksik. E-postandaki doğrulama kodunu kullan.");
     }
     if (authResult.error) throw authResult.error;
     var nextSession = authResult.data && authResult.data.session;
     if (!nextSession) throw new Error("Doğrulama bağlantısında geçerli oturum bulunamadı.");
     session = nextSession;
-    if (params.get("type") === "recovery") {
-      renderPasswordUpdate();
-      return true;
+    // Recovery must come from the Auth SDK's verified PKCE result/event, never URL type alone.
+    if (authResult.data.redirectType === "recovery") {
+      recoveryVerified = true; renderPasswordUpdate(); return true;
     }
+    if (params.get("type") === "recovery") throw new Error("Şifreni yenilemek için e-postandaki doğrulama kodunu kullan.");
     await handleSession(nextSession);
     return true;
   }
@@ -243,11 +344,11 @@
   function renderProfileSetup(existing) {
     var name = existing && existing.display_name !== "FitTrack Kullanıcısı" ? existing.display_name : "";
     var role = existing && existing.role_preference === "trainer" ? "trainer" : "member";
-    var body = '<form data-cloud-form="profile"><div class="field"><label for="setupName">AD SOYAD</label><input id="setupName" type="text" maxlength="80" value="' + esc(name) + '" placeholder="Adın ve soyadın" required></div>' +
+    var body = '<form class="auth-role-form" data-cloud-form="profile"><div class="field"><label for="setupName">AD SOYAD</label><input id="setupName" type="text" maxlength="80" value="' + esc(name) + '" placeholder="Adın ve soyadın" required></div>' +
       '<div class="auth-role"><span>ROLÜN</span><label><input type="radio" name="setupRole" value="member" ' + (role === "member" ? "checked" : "") + '><i>Üye</i><small>Programımı uygularım</small></label><label><input type="radio" name="setupRole" value="trainer" ' + (role === "trainer" ? "checked" : "") + '><i>Antrenör</i><small>Salonumu yönetirim</small></label></div>' +
       '<label class="auth-consent"><input id="setupConsent" type="checkbox" required><span>Beta gizlilik, kullanım ve sağlık verisi işleme koşullarını kabul ediyorum.</span></label>' +
       '<button class="primary-btn" type="submit">Devam et</button></form>';
-    showLayer(shell("HESAP KURULUMU", "Seni doğru alana yerleştirelim.", "Rol, görünümü belirler; gerçek yetki salon üyeliğiyle veritabanında atanır.", body));
+    showLayer(shell("HESAP KURULUMU", "FitTrack'i nasıl kullanacaksın?", "Sana en uygun deneyimi hazırlayalım.", body, "auth-role-setup"));
   }
 
   function renderGymSetup(role, notice) {
@@ -257,14 +358,14 @@
       body += '<section class="auth-choice"><h2>Yeni salon oluştur</h2><p>İlk yönetici sen olursun; üyeler için davet kodu üretilir.</p><form data-cloud-form="create-gym">' + field("gymName", "SALON ADI", "text", "Örn. Nova Fitness", "organization") + '<button class="primary-btn" type="submit">Salonu oluştur</button></form></section><div class="auth-or"><span>veya</span></div>';
     }
     body += '<section class="auth-choice"><h2>Davet koduyla katıl</h2><p>' + (trainer ? "Salon yöneticisinin antrenör davet kodunu" : "Antrenörünün veya salonunun davet kodunu") + ' gir.</p><form data-cloud-form="join-gym">' + field("inviteCode", "DAVET KODU", "text", "FT-XXXXXXXX", "one-time-code") + '<button class="secondary-btn" type="submit">Salona bağlan</button></form></section><button class="auth-link danger" data-cloud-action="sign-out">Farklı hesapla giriş yap</button>';
-    showLayer(shell("SALON BAĞLANTISI", trainer ? "Salonunu kur veya ekibine katıl." : "Antrenörüne bağlan.", "Salon bağlantısı olmadan hiçbir üye, program veya antrenman verisi paylaşılmaz.", body));
+    showLayer(shell("SALON BAĞLANTISI", trainer ? "Salonunu kur veya ekibine katıl" : "Salonuna bağlan", trainer ? "Yeni salon oluşturabilir veya mevcut bir ekibe katılabilirsin." : "Salonundan aldığın davet kodunu gir; programlarına ulaş.", body, trainer ? "auth-gym-trainer" : "auth-gym-member"));
   }
 
   function renderInviteResult(code, gymName) {
     lastInvite = code;
     localStorage.setItem(lastInviteKey(), code);
-    var body = '<div class="invite-result"><small>ÜYE DAVET KODU</small><strong>' + esc(code) + '</strong><p>' + esc(gymName) + ' üyeleri bu kodla salona katılabilir.</p></div><button class="primary-btn" data-cloud-action="copy-invite" data-code="' + esc(code) + '">Kodu kopyala</button><button class="secondary-btn" data-cloud-action="continue-bootstrap">Panele devam et</button>';
-    showLayer(shell("SALON HAZIR", "İlk bağlantı kodun oluşturuldu.", "Kodu yalnız salona katılmasını istediğin kişilerle paylaş.", body), true);
+    var body = '<div class="invite-result"><small>ÜYE DAVET KODU</small><strong>' + esc(code) + '</strong><p>' + esc(gymName) + ' üyeleri bu kodla salona katılabilir.</p></div><button class="primary-btn" data-cloud-action="copy-invite" data-code="' + esc(code) + '">Kodu kopyala</button><button class="primary-btn" data-cloud-action="continue-bootstrap">Panele devam et</button>';
+    showLayer(shell("SALON HAZIR", "Salonun hazır", "Artık üyeleri davet edebilir ve paneli kullanmaya başlayabilirsin.", body, "auth-gym-ready"), true);
   }
 
   function renderInviteManager(message) {
@@ -274,7 +375,7 @@
       (saved ? '<div class="invite-result compact"><small>SON ÜYE KODU</small><strong>' + esc(saved) + '</strong></div>' : '') +
       '<form data-cloud-form="create-invite"><div class="form-grid"><div class="field"><label for="inviteUses">KULLANIM</label><input id="inviteUses" type="number" min="1" max="100" value="10" required></div><div class="field"><label for="inviteDays">GEÇERLİ GÜN</label><input id="inviteDays" type="number" min="1" max="90" value="7" required></div></div><button class="primary-btn" type="submit">Yeni üye kodu üret</button></form>' +
       (saved ? '<button class="secondary-btn" data-cloud-action="copy-invite" data-code="' + esc(saved) + '">Son kodu kopyala</button>' : '') + '<button class="auth-link" data-cloud-action="close-auth-modal">Kapat</button>';
-    showLayer(shell("SALON DAVETİ", "Üyeyi güvenli kodla bağla.", "Kod süre ve kullanım sınırına sahiptir; başka salon verisine erişim vermez.", body), true);
+    showLayer(shell("SALON DAVETİ", "Üye daveti", "Üyeler bu kodla salona katılır.", body, "auth-invite"), true);
   }
 
   function renderAccountManager(message) {
@@ -284,7 +385,7 @@
       '<div class="account-actions"><button data-cloud-action="sync-now"><b>↻</b><span><strong>Şimdi senkronize et</strong><small>Bekleyen ' + queue().length + ' işlem</small></span></button><button data-cloud-action="export-cloud"><b>⇩</b><span><strong>Bulut verilerimi dışa aktar</strong><small>JSON dosyası olarak indir</small></span></button>' +
       (membership && ["admin", "trainer"].indexOf(membership.role) !== -1 ? '<button data-cloud-action="invite-manager"><b>＋</b><span><strong>Davet kodu oluştur</strong><small>Üyeyi salona bağla</small></span></button>' : '') +
       '<button data-cloud-action="sign-out"><b>↪</b><span><strong>Bu cihazdan çıkış yap</strong><small>Diğer cihazlar açık kalır</small></span></button><button data-cloud-action="sign-out-all"><b>⊘</b><span><strong>Tüm cihazlardan çıkış yap</strong><small>Bütün yenileme oturumlarını kapat</small></span></button><button class="danger" data-cloud-action="delete-account"><b>×</b><span><strong>Hesabı ve verileri sil</strong><small>Geri alınamaz</small></span></button></div><button class="auth-link" data-cloud-action="close-auth-modal">Kapat</button>';
-    showLayer(shell("HESAP VE BULUT", "Oturum kontrolü sende.", "Cihaz, senkronizasyon ve veri haklarını buradan yönetebilirsin.", body), true);
+    showLayer(shell("HESAP VE BULUT", "Güvenlik ve oturumlar", "", body, "auth-account"), true);
   }
 
   function renderDeleteConfirm(message) {
@@ -342,7 +443,7 @@
     if (!offlineSessionOnly || !client || !navigator.onLine) return false;
     var result = await client.auth.getSession();
     if (result.error) { setStatus("error", "Bağlantı doğrulanamadı; yerel veriler açık"); return false; }
-    if (!result.data || !result.data.session) { setStatus("error", "Oturum doğrulanamadı; yerel verilerin açık"); return false; }
+    if (!result.data || !result.data.session) { offlineSessionOnly = false; await handleSession(null); return false; }
     offlineSessionOnly = false;
     await handleSession(result.data.session);
     return true;
@@ -362,17 +463,24 @@
 
   async function chooseMembership(items) {
     if (!items.length) return null;
+    var userId = session.user.id; var epoch = contextEpoch;
     var preferred = localStorage.getItem(activeGymKey());
     var selected = items.find(function (item) { return item.gym_id === preferred; }) || items[0];
     var gymResult = await client.from("gyms").select("id,name,created_by,created_at").eq("id", selected.gym_id).single();
+    if (!session || session.user.id !== userId || contextEpoch !== epoch) return null;
     if (gymResult.error) throw gymResult.error;
+    if (gym && gym.id !== gymResult.data.id) contextEpoch += 1;
     membership = selected;
     gym = gymResult.data;
+    if (bridge.activateGym) bridge.activateGym(gym.id);
     localStorage.setItem(activeGymKey(), gym.id);
     return selected;
   }
 
   async function handleSession(nextSession) {
+    contextEpoch += 1; var epoch = contextEpoch;
+    window.clearTimeout(stateTimer); window.clearTimeout(bootstrapTimer); window.clearTimeout(retryTimer);
+    gym = null; membership = null;
     offlineSessionOnly = false;
     session = nextSession || null;
     lastInvite = "";
@@ -380,7 +488,7 @@
     if (!session || !session.user) {
       profile = null; membership = null; gym = null;
       if (bridge && bridge.deactivateAccount) bridge.deactivateAccount();
-      renderAuth("login");
+      renderWelcome();
       updateStatus();
       return;
     }
@@ -391,59 +499,57 @@
       setStatus("offline", "Çevrimdışı kullanım · bağlantı gelince eşitlenecek");
       return;
     }
-    showLayer(shell("BULUT BAĞLANTISI", "Hesabın yükleniyor.", "Salon, program ve çevrimdışı kayıtların güvenli biçimde eşleştiriliyor.", '<div class="auth-loader"><i></i><i></i><i></i></div>'));
+    showLayer(shell("BULUT BAĞLANTISI", "Hesabın yükleniyor.", "Salon, program ve çevrimdışı kayıtların güvenli biçimde eşleştiriliyor.", '<div class="auth-loader"><i></i><i></i><i></i></div>', 'auth-loading'));
     try {
-      profile = await fetchProfile();
+      var loadedProfile = await fetchProfile(); if (epoch !== contextEpoch) return; profile = loadedProfile;
       if (!profile || !profile.onboarding_complete) return renderProfileSetup(profile);
-      var memberships = await fetchMemberships();
+      var memberships = await fetchMemberships(); if (epoch !== contextEpoch) return;
       if (!memberships.length) return renderGymSetup(profile.role_preference);
       await chooseMembership(memberships);
-      await bootstrap();
+      if (epoch === contextEpoch) await bootstrap();
     } catch (error) {
       if (!navigator.onLine || /network|fetch|offline|failed to fetch/i.test(String(error && error.message || error))) {
         hideLayer();
         setStatus("offline", "Bağlantı kurulamadı; yerel veriler açık");
         return;
       }
-      console.error("FitTrack bootstrap failed while session is still present", error);
-      hideLayer();
-      setStatus("error", "Bulut verileri alınamadı; yerel verilerin açık");
-      if (bridge && bridge.notify) bridge.notify("Oturumun korunuyor; bulut bağlantısı yeniden denenecek.");
+      renderAuth("login", authError(error));
     }
   }
 
   async function bootstrap() {
     if (!session || !membership || !gym) return;
+    var ctx = captureContext();
     setStatus("syncing", "Bulut verileri alınıyor");
     var staff = ["admin", "trainer"].indexOf(membership.role) !== -1;
-    var programsPromise = client.from("programs").select("*").eq("gym_id", gym.id).order("updated_at", { ascending: false });
-    var assignmentsPromise = client.from("program_assignments").select("*").eq("gym_id", gym.id).eq("active", true).order("assigned_at", { ascending: false });
-    var snapshotsPromise = client.from("member_snapshots").select("*").eq("gym_id", gym.id);
-    var workoutsPromise = client.from("workout_sessions").select("*").eq("gym_id", gym.id).order("finished_at", { ascending: false }).limit(staff ? 1000 : 300);
-    var membersPromise = staff ? client.from("gym_memberships").select("gym_id,user_id,role,trainer_id,joined_at").eq("gym_id", gym.id).eq("role", "member").eq("active", true) : Promise.resolve({ data: [], error: null });
-    var messagesPromise = client.from("chat_messages").select("*").eq("gym_id", gym.id).order("created_at", { ascending: true }).limit(staff ? 2000 : 500);
-    var gymExercisesPromise = staff ? client.from("gym_exercises").select("*").eq("gym_id", gym.id).eq("active", true).order("name", { ascending: true }).then(function (result) { if (result.error && /gym_exercises|does not exist|schema cache/i.test(String(result.error.message || result.error.details || ""))) return { data: [], error: null }; return result; }) : Promise.resolve({ data: [], error: null });
-    var memberNotesPromise = staff ? client.from("member_coach_notes").select("*").eq("gym_id", gym.id).then(function (result) { if (result.error && /member_coach_notes|does not exist|schema cache/i.test(String(result.error.message || result.error.details || ""))) return { data: [], error: null }; return result; }) : Promise.resolve({ data: [], error: null });
-    var values = await Promise.all([programsPromise, assignmentsPromise, snapshotsPromise, workoutsPromise, membersPromise, messagesPromise, gymExercisesPromise, memberNotesPromise]);
+    var programsPromise = client.from("programs").select("*").eq("gym_id", ctx.gymId).order("updated_at", { ascending: false });
+    var assignmentsPromise = client.from("program_assignments").select("*").eq("gym_id", ctx.gymId).eq("active", true).order("assigned_at", { ascending: false });
+    var snapshotsPromise = client.from("member_snapshots").select("*").eq("gym_id", ctx.gymId);
+    var workoutsPromise = client.from("workout_sessions").select("*").eq("gym_id", ctx.gymId).order("finished_at", { ascending: false }).limit(staff ? 1000 : 300);
+    var membersPromise = staff ? client.from("gym_memberships").select("gym_id,user_id,role,trainer_id,joined_at,coach_note").eq("gym_id", ctx.gymId).eq("role", "member").eq("active", true) : Promise.resolve({ data: [], error: null });
+    var messagesPromise = client.from("chat_messages").select("*").eq("gym_id", ctx.gymId).order("created_at", { ascending: false }).limit(staff ? 2000 : 500);
+    var deletionsPromise = client.from("workout_deletions").select("member_id,client_mutation_id,deleted_at").eq("gym_id", ctx.gymId);
+    var values = await Promise.all([programsPromise, assignmentsPromise, snapshotsPromise, workoutsPromise, membersPromise, messagesPromise, deletionsPromise]);
+    if (!contextMatches(ctx)) return;
     values.forEach(function (result) { if (result.error) throw result.error; });
 
     var members = values[4].data || [];
     var profileIds = members.map(function (item) { return item.user_id; });
-    (values[1].data || []).forEach(function (item) { if (item.trainer_id) profileIds.push(item.trainer_id); });
     if (membership.trainer_id) profileIds.push(membership.trainer_id);
     if (gym.created_by) profileIds.push(gym.created_by);
     profileIds = profileIds.filter(function (id, index, list) { return id && list.indexOf(id) === index; });
     var relatedProfiles = [];
     if (profileIds.length) {
       var profileResult = await client.from("profiles").select("id,display_name,role_preference").in("id", profileIds);
+      if (!contextMatches(ctx)) return;
       if (profileResult.error) throw profileResult.error;
       relatedProfiles = profileResult.data || [];
     }
 
-    var ownSnapshot = (values[2].data || []).find(function (item) { return item.user_id === session.user.id; });
+    var ownSnapshot = (values[2].data || []).find(function (item) { return item.user_id === ctx.userId; });
     if (ownSnapshot) localStorage.setItem(snapshotKey(), String(ownSnapshot.state_version));
     bridge.applyCloudBootstrap({
-      user: { id: session.user.id, email: session.user.email || "" },
+      user: { id: ctx.userId, email: session.user.email || "" },
       profile: profile,
       membership: membership,
       gym: gym,
@@ -453,14 +559,14 @@
       assignments: values[1].data || [],
       snapshots: values[2].data || [],
       workouts: values[3].data || [],
-      messages: values[5].data || [],
-      gymExercises: values[6].data || [],
-      memberNotes: values[7].data || [],
+      messages: (values[5].data || []).slice().reverse(),
+      workoutDeletions: values[6].data || [],
       ownSnapshot: ownSnapshot || null,
       pendingProfileName: pendingProfileName()
     });
 
     await registerDevice();
+    if (!contextMatches(ctx)) return;
     hideLayer();
     subscribeRealtime();
     if (!ownSnapshot) scheduleStateSync(true);
@@ -474,7 +580,7 @@
       id: deviceId(),
       user_id: session.user.id,
       platform: platform,
-      app_version: config.appVersion || "0.11.4",
+      app_version: config.appVersion || "0.11.6",
       device_name: String(deviceName).slice(0, 100),
       last_seen_at: new Date().toISOString()
     }, { onConflict: "id" });
@@ -492,8 +598,6 @@
       .on("postgres_changes", { event: "*", schema: "public", table: "programs", filter: "gym_id=eq." + gym.id }, scheduleBootstrap)
       .on("postgres_changes", { event: "*", schema: "public", table: "member_snapshots", filter: "gym_id=eq." + gym.id }, scheduleBootstrap)
       .on("postgres_changes", { event: "*", schema: "public", table: "workout_sessions", filter: "gym_id=eq." + gym.id }, scheduleBootstrap)
-      .on("postgres_changes", { event: "*", schema: "public", table: "gym_exercises", filter: "gym_id=eq." + gym.id }, scheduleBootstrap)
-      .on("postgres_changes", { event: "*", schema: "public", table: "member_coach_notes", filter: "gym_id=eq." + gym.id }, scheduleBootstrap)
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_messages", filter: "gym_id=eq." + gym.id }, scheduleBootstrap)
       .subscribe(function (status) { if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setStatus("pending", "Canlı bağlantı yeniden kurulacak"); });
   }
@@ -509,10 +613,14 @@
     bootstrapTimer = window.setTimeout(function () { bootstrap().catch(function (error) { setStatus("error", authError(error)); }); }, 650);
   }
 
+  function deletionAckKey(ctx) { return "fittrack-deletion-acks:" + ctx.userId + ":" + ctx.gymId; }
   function scheduleStateSync(immediate) {
     if (!session || !membership || !gym || !bridge) return;
+    var ctx = captureContext();
     window.clearTimeout(stateTimer);
     stateTimer = window.setTimeout(function () {
+      if (!contextMatches(ctx)) return;
+      try {
       var snapshot = bridge.getCloudSnapshot();
       if (snapshot) {
         snapshot._cloudMeta = snapshot._cloudMeta || {};
@@ -527,49 +635,53 @@
         if (!record || !record.syncId || !record.needsSync) return;
         enqueue("workout", record, "workout:" + record.syncId);
       });
-      flushQueue();
+      (snapshot && snapshot.deletedHistoryIds || []).forEach(function (syncId) { if (readJson(deletionAckKey(ctx), []).indexOf(syncId) < 0 && !queue().some(function (item) { return item.type === "workout-delete" && item.payload.syncId === syncId; })) enqueue("workout-delete", { syncId: syncId }, "workout-delete:" + ctx.gymId + ":" + syncId); });
+      flushQueue().catch(function (error) { if (contextMatches(ctx)) setStatus("error", authError(error)); });
+      } catch (error) { if (contextMatches(ctx)) setStatus("error", "Cihaz depolaması dolu; son değişiklik senkronizasyon kuyruğuna eklenemedi. Alan açıp yeniden dene."); }
     }, immediate ? 0 : 1200);
   }
 
-  function mergeAndRetrySnapshot(item, response) {
+  function mergeAndRetrySnapshot(item, response, ctx) {
+    ctx = ctx || itemContext(item); assertContext(ctx);
     var merged = bridge.mergeCloudSnapshot(response.server_state, response.snapshot_version);
-    localStorage.setItem(snapshotKey(), String(response.snapshot_version));
-    item.payload = {
-      baseVersion: response.snapshot_version,
-      state: merged,
-      clientUpdatedAt: new Date().toISOString()
-    };
-    item.attempts += 1;
-    var items = queue();
-    var index = items.findIndex(function (candidate) { return candidate.id === item.id; });
-    if (index >= 0) { items[index] = item; saveQueue(items); }
+    localStorage.setItem(scopedSnapshotKey(ctx), String(response.snapshot_version));
+    var items = queue(); var index = items.findIndex(function (candidate) { return candidate.id === item.id; });
+    if (index >= 0) {
+      // Re-read the latest generation. An in-flight acknowledgement never replaces it.
+      items[index].payload = { baseVersion: response.snapshot_version, state: merged, clientUpdatedAt: new Date().toISOString() };
+      items[index].revision = uuid(); items[index].attempts = Number(items[index].attempts || 0) + 1;
+      saveQueue(items);
+    }
   }
 
-  async function processSnapshot(item) {
+  async function processSnapshot(item, ctx) {
+    ctx = ctx || itemContext(item); assertContext(ctx);
     var result = await client.rpc("apply_member_snapshot", {
-      p_gym_id: gym.id,
-      p_device_id: deviceId(),
+      p_gym_id: ctx.gymId,
+      p_device_id: ctx.deviceId,
       p_base_version: Number(item.payload.baseVersion || 0),
       p_state: item.payload.state,
       p_client_updated_at: item.payload.clientUpdatedAt
     });
+    if (!contextMatches(ctx)) return true;
     if (result.error) throw result.error;
     var response = Array.isArray(result.data) ? result.data[0] : result.data;
     if (!response) throw new Error("SNAPSHOT_RESPONSE_EMPTY");
     if (response.conflict) {
-      mergeAndRetrySnapshot(item, response);
+      mergeAndRetrySnapshot(item, response, ctx);
       return false;
     }
-    localStorage.setItem(snapshotKey(), String(response.snapshot_version));
+    localStorage.setItem(scopedSnapshotKey(ctx), String(response.snapshot_version));
     if (bridge.setSnapshotVersion) bridge.setSnapshotVersion(response.snapshot_version, response.server_updated_at);
     return true;
   }
 
-  async function processWorkout(item) {
+  async function processWorkout(item, ctx) {
+    ctx = ctx || itemContext(item); assertContext(ctx);
     var record = item.payload;
     var result = await client.from("workout_sessions").upsert({
-      gym_id: gym.id,
-      member_id: session.user.id,
+      gym_id: ctx.gymId,
+      member_id: ctx.userId,
       assignment_id: record.assignmentCloudId || null,
       program_id: record.programCloudId || null,
       client_mutation_id: record.syncId,
@@ -579,16 +691,18 @@
       duration_minutes: Math.max(1, Math.min(1440, Math.round(Number(record.duration) || 1))),
       payload: record.payload || {}
     }, { onConflict: "member_id,client_mutation_id" }).select("id,updated_at").single();
+    if (result.error && /WORKOUT_DELETED/.test(result.error.message || "")) return true;
     if (result.error) throw result.error;
-    if (bridge.markWorkoutSynced) bridge.markWorkoutSynced(record.syncId, result.data.id, result.data.updated_at);
+    if (contextMatches(ctx) && bridge.markWorkoutSynced) bridge.markWorkoutSynced(record.syncId, result.data.id, result.data.updated_at);
     return true;
   }
 
-  function programRow(program) {
+  function programRow(program, ctx) {
+    ctx = ctx || captureContext();
     var localId = String(program.id || uuid()).slice(0, 140);
     var rootKey = String(program.rootId || program.id || localId).slice(0, 140);
     return {
-      gym_id: gym.id,
+      gym_id: ctx.gymId,
       client_key: localId,
       root_key: rootKey,
       version: Math.max(1, Math.min(9999, Number(program.revision) || 1)),
@@ -597,51 +711,59 @@
       description: String(program.description || "").slice(0, 500),
       general_note: String(program.generalNote || "").slice(0, 1000),
       payload: program,
-      created_by: session.user.id
+      created_by: ctx.userId
     };
   }
 
-  async function ensureCloudProgram(program) {
-    if (program.cloudId && /^[0-9a-f-]{36}$/i.test(program.cloudId)) return program.cloudId;
-    var row = programRow(program);
-    var existingResult = await client.from("programs").select("id,root_id").eq("gym_id", gym.id).eq("client_key", row.client_key).maybeSingle();
+  async function ensureCloudProgram(program, ctx, updateExisting) {
+    ctx = ctx || captureContext(); assertContext(ctx);
+    if (!updateExisting && program.cloudId && /^[0-9a-f-]{36}$/i.test(program.cloudId)) return program.cloudId;
+    var row = programRow(program, ctx);
+    var existingResult = await client.from("programs").select("id,root_id,created_by").eq("gym_id", ctx.gymId).eq("client_key", row.client_key).maybeSingle();
+    assertContext(ctx);
     if (existingResult.error) throw existingResult.error;
     if (existingResult.data) {
+      row.created_by = existingResult.data.created_by || row.created_by;
       row.id = existingResult.data.id;
       row.root_id = existingResult.data.root_id;
     } else {
-      var rootResult = await client.from("programs").select("root_id").eq("gym_id", gym.id).eq("root_key", row.root_key).order("version", { ascending: false }).limit(1).maybeSingle();
+      var rootResult = await client.from("programs").select("root_id").eq("gym_id", ctx.gymId).eq("root_key", row.root_key).order("version", { ascending: false }).limit(1).maybeSingle();
+      assertContext(ctx);
       if (rootResult.error) throw rootResult.error;
       row.id = uuid();
       row.root_id = rootResult.data ? rootResult.data.root_id : uuid();
     }
     var result = await client.from("programs").upsert(row, { onConflict: "gym_id,client_key" }).select("id,root_id,updated_at").single();
     if (result.error) throw result.error;
-    if (bridge.bindCloudProgram) bridge.bindCloudProgram(program.id, result.data.id, result.data.root_id, result.data.updated_at);
+    if (contextMatches(ctx) && bridge.bindCloudProgram) bridge.bindCloudProgram(program.id, result.data.id, result.data.root_id, result.data.updated_at);
     return result.data.id;
   }
 
-  async function processProgram(item) {
-    await ensureCloudProgram(item.payload.program);
+  async function processProgram(item, ctx) {
+    ctx = ctx || itemContext(item); assertContext(ctx);
+    await ensureCloudProgram(item.payload.program, ctx, true);
     return true;
   }
 
-  async function processAssignment(item) {
-    var programId = await ensureCloudProgram(item.payload.program);
+  async function processAssignment(item, ctx) {
+    ctx = ctx || itemContext(item); assertContext(ctx);
+    var programId = await ensureCloudProgram(item.payload.program, ctx);
+    assertContext(ctx);
     var result = await client.rpc("assign_program_to_member", {
-      p_gym_id: gym.id,
+      p_gym_id: ctx.gymId,
       p_member_id: item.payload.memberId,
       p_program_id: programId,
       p_coach_note: item.payload.note || ""
     });
     if (result.error) throw result.error;
-    if (bridge.bindCloudAssignment) bridge.bindCloudAssignment(item.payload.memberId, item.payload.program.id, result.data);
+    if (contextMatches(ctx) && bridge.bindCloudAssignment) bridge.bindCloudAssignment(item.payload.memberId, item.payload.program.id, result.data);
     return true;
   }
 
-  async function processUnassignment(item) {
+  async function processUnassignment(item, ctx) {
+    ctx = ctx || itemContext(item); assertContext(ctx);
     var result = await client.rpc("archive_program_assignment", {
-      p_gym_id: gym.id,
+      p_gym_id: ctx.gymId,
       p_member_id: item.payload.memberId,
       p_assignment_id: item.payload.assignmentId
     });
@@ -649,138 +771,150 @@
     return true;
   }
 
-  async function processMessage(item) {
+  async function processMessage(item, ctx) {
+    ctx = ctx || itemContext(item); assertContext(ctx);
     var payload = item.payload || {};
     var row = {
-      gym_id: gym.id,
-      sender_id: session.user.id,
+      gym_id: ctx.gymId,
+      sender_id: ctx.userId,
       recipient_id: payload.recipientId,
       client_mutation_id: payload.clientMutationId,
       body: String(payload.body || "").trim().slice(0, 1000)
     };
     var result = await client.from("chat_messages").insert(row).select("*").single();
-    if (result.error && result.error.code === "23505") result = await client.from("chat_messages").select("*").eq("sender_id", session.user.id).eq("client_mutation_id", row.client_mutation_id).single();
+    if (!contextMatches(ctx)) return true;
+    if (result.error && result.error.code === "23505") result = await client.from("chat_messages").select("*").eq("sender_id", ctx.userId).eq("client_mutation_id", row.client_mutation_id).single();
     if (result.error) throw result.error;
-    if (bridge.bindCloudMessage) bridge.bindCloudMessage(row.client_mutation_id, result.data);
+    if (contextMatches(ctx) && bridge.bindCloudMessage) bridge.bindCloudMessage(row.client_mutation_id, result.data);
     return true;
   }
 
-  async function processMessageRead(item) {
-    var result = await client.from("chat_messages").update({ read_at: new Date().toISOString() }).eq("gym_id", gym.id).eq("sender_id", item.payload.partnerId).eq("recipient_id", session.user.id).is("read_at", null);
-    if (result.error) throw result.error;
-    return true;
-  }
-
-  async function processNote(item) {
-    var result = await client.from("member_coach_notes").upsert({
-      gym_id: gym.id,
-      member_id: item.payload.memberId,
-      note: String(item.payload.note || "").slice(0, 180),
-      updated_by: session.user.id,
-      updated_at: new Date().toISOString()
-    }, { onConflict: "gym_id,member_id" });
+  async function processMessageRead(item, ctx) {
+    ctx = ctx || itemContext(item); assertContext(ctx);
+    var result = await client.from("chat_messages").update({ read_at: new Date().toISOString() }).eq("gym_id", ctx.gymId).eq("sender_id", item.payload.partnerId).eq("recipient_id", ctx.userId).is("read_at", null);
     if (result.error) throw result.error;
     return true;
   }
 
-  async function processProfile(item) {
+  async function processNote(item, ctx) {
+    ctx = ctx || itemContext(item); assertContext(ctx);
+    var result = await client.rpc("update_member_coach_note", {
+      p_gym_id: ctx.gymId,
+      p_member_id: item.payload.memberId,
+      p_coach_note: item.payload.note || ""
+    });
+    if (result.error) throw result.error;
+    return true;
+  }
+
+  async function processProfile(item, ctx) {
+    ctx = ctx || itemContext(item); assertContext(ctx);
     var displayName = String(item.payload && item.payload.displayName || "").trim().slice(0, 80);
     if (!displayName) return true;
     var result = await client.rpc("set_profile", {
       p_display_name: displayName,
-      p_role_preference: profile && profile.role_preference || (membership && membership.role === "trainer" ? "trainer" : "member"),
+      p_role_preference: ctx.rolePreference || (ctx.role === "trainer" ? "trainer" : "member"),
       p_consent_version: config.consentVersion
     });
     if (result.error) throw result.error;
+    if (!contextMatches(ctx)) return true;
     profile = result.data || Object.assign({}, profile || {}, { display_name: displayName });
     return true;
   }
 
-  async function processGymExercise(item) {
-    var exercise = item.payload && item.payload.exercise || {}; var active = item.payload && item.payload.active !== false;
-    var row = {
-      gym_id: gym.id,
-      client_key: String(exercise.id || "").slice(0, 120),
-      name: String(exercise.name || "Hareket").slice(0, 80),
-      muscles: Array.isArray(exercise.muscles) ? exercise.muscles.slice(0, 2) : [],
-      equipment: String(exercise.equipment || "Diğer").slice(0, 40),
-      requires_weight: exercise.requiresWeight !== false,
-      cues: Array.isArray(exercise.cues) ? exercise.cues.slice(0, 5) : [],
-      payload: exercise,
-      active: active,
-      created_by: session.user.id,
-      updated_at: new Date().toISOString()
-    };
-    var result = await client.from("gym_exercises").upsert(row, { onConflict: "gym_id,client_key" });
-    if (result.error) throw result.error;
-    return true;
+  async function processQueueItem(item, ctx) {
+    ctx = ctx || itemContext(item); assertContext(ctx);
+    if (item.type === "workout-delete") return processWorkoutDelete(item, ctx);
+    if (item.type === "snapshot") return processSnapshot(item, ctx);
+    if (item.type === "workout") return processWorkout(item, ctx);
+    if (item.type === "program") return processProgram(item, ctx);
+    if (item.type === "assignment") return processAssignment(item, ctx);
+    if (item.type === "unassignment") return processUnassignment(item, ctx);
+    if (item.type === "message") return processMessage(item, ctx);
+    if (item.type === "message-read") return processMessageRead(item, ctx);
+    if (item.type === "note") return processNote(item, ctx);
+    if (item.type === "profile") return processProfile(item, ctx);
+    throw new Error("UNKNOWN_QUEUE_OPERATION");
   }
 
-  async function processQueueItem(item) {
-    if (item.type === "snapshot") return processSnapshot(item);
-    if (item.type === "workout") return processWorkout(item);
-    if (item.type === "program") return processProgram(item);
-    if (item.type === "assignment") return processAssignment(item);
-    if (item.type === "unassignment") return processUnassignment(item);
-    if (item.type === "message") return processMessage(item);
-    if (item.type === "message-read") return processMessageRead(item);
-    if (item.type === "note") return processNote(item);
-    if (item.type === "profile") return processProfile(item);
-    if (item.type === "gym-exercise") return processGymExercise(item);
-    return true;
+  function scheduleQueueRetry() {
+    window.clearTimeout(retryTimer); if (!session || !navigator.onLine) return;
+    var ctx = captureContext();
+    retryTimer = window.setTimeout(function () { if (contextMatches(ctx)) flushQueue(); }, 3000);
   }
-
   async function flushQueue() {
     if (flushPromise) return flushPromise;
-    if (!client || !session || !membership || !gym || !navigator.onLine) { updateStatus(); return Promise.resolve(false); }
+    if (!client || !session || !membership || !gym || !navigator.onLine) { updateStatus(); return false; }
+    var ctx = captureContext(); var key = queueKey();
     flushPromise = (async function () {
       setStatus("syncing", "Bekleyen işlemler gönderiliyor");
-      var processed = 0;
-      while (queue().length && processed < 100) {
-        var item = queue()[0];
+      var processed = 0; var failedIds = {}; var failures = false;
+      while (contextMatches(ctx) && navigator.onLine && processed < 100) {
+        var item = queue().find(function (candidate) { return candidate.userId === ctx.userId && candidate.gymId === ctx.gymId && !failedIds[candidate.id] && Number(candidate.nextAttemptAt || 0) <= Date.now(); });
+        if (!item) break;
         try {
-          var done = await processQueueItem(item);
-          if (done) removeQueueItem(item.id);
-          else break;
+          var done = await processQueueItem(item, ctx);
+          if (done) removeQueueItem(item.id, item.revision, key);
+          else { failedIds[item.id] = true; failures = true; }
         } catch (error) {
-          var items = queue();
-          var failed = items.find(function (candidate) { return candidate.id === item.id; });
-          if (failed) failed.attempts = Number(failed.attempts || 0) + 1;
-          saveQueue(items);
-          setStatus("error", authError(error));
-          if (!navigator.onLine || failed && failed.attempts >= 5) break;
-          break;
+          if (!contextMatches(ctx)) break;
+          var items = queue(); var failed = items.find(function (candidate) { return candidate.id === item.id && candidate.revision === item.revision; });
+          if (failed) { failed.attempts = Number(failed.attempts || 0) + 1; failed.lastError = authError(error); failed.nextAttemptAt = Date.now() + Math.min(60000, 1000 * Math.pow(2, Math.min(failed.attempts, 6))); }
+          saveQueue(items); failedIds[item.id] = true; failures = true; setStatus("error", authError(error));
         }
         processed += 1;
       }
-      return queue().length === 0;
+      if (!contextMatches(ctx)) return false;
+      var pending = queue().some(function (item) { return item.userId === ctx.userId && item.gymId === ctx.gymId; });
+      if (pending || failures) scheduleQueueRetry();
+      return !pending;
     })();
     try { return await flushPromise; }
-    finally { flushPromise = null; updateStatus(); }
+    finally { flushPromise = null; if (contextMatches(ctx)) updateStatus(); else if (session && gym && navigator.onLine) scheduleQueueRetry(); }
+  }
+  async function flushOperation(id) {
+    var ctx = captureContext(); await flushQueue();
+    if (!contextMatches(ctx) || queue().some(function (item) { return item.id === id && item.gymId === ctx.gymId; })) throw new Error("SYNC_PENDING");
+    return true;
+  }
+  async function processWorkoutDelete(item, ctx) {
+    assertContext(ctx);
+    var result = await client.rpc("delete_workout_record", { p_gym_id: ctx.gymId, p_sync_id: item.payload.syncId });
+    if (result.error) throw result.error;
+    var ids = readJson(deletionAckKey(ctx), []);
+    if (ids.indexOf(item.payload.syncId) < 0) ids.push(item.payload.syncId);
+    localStorage.setItem(deletionAckKey(ctx), JSON.stringify(ids));
+    return true;
+  }
+  async function deleteWorkout(syncId) {
+    var ctx = captureContext();
+    saveQueue(queue().filter(function (item) { return !(item.type === "workout" && item.gymId === ctx.gymId && item.payload.syncId === syncId); }));
+    var id = enqueue("workout-delete", { syncId: syncId }, "workout-delete:" + ctx.gymId + ":" + syncId);
+    return flushOperation(id);
   }
 
   async function publishProgram(program) {
     if (!session || !membership || ["admin", "trainer"].indexOf(membership.role) === -1) throw new Error("NOT_GYM_STAFF");
-    enqueue("program", { program: program }, "program:" + gym.id + ":" + program.id);
-    await flushQueue();
+    var operationId = enqueue("program", { program: program }, "program:" + gym.id + ":" + program.id);
+    return flushOperation(operationId);
   }
 
   async function assignProgram(memberId, program, note) {
     if (!session || !membership || ["admin", "trainer"].indexOf(membership.role) === -1) throw new Error("NOT_GYM_STAFF");
-    enqueue("assignment", { memberId: memberId, program: program, note: note || "" }, "assignment:" + gym.id + ":" + memberId + ":" + program.id);
-    await flushQueue();
+    var operationId = enqueue("assignment", { memberId: memberId, program: program, note: note || "" }, "assignment:" + gym.id + ":" + memberId + ":" + program.id);
+    return flushOperation(operationId);
   }
 
   async function unassignProgram(memberId, assignmentId) {
     if (!session || !membership || ["admin", "trainer"].indexOf(membership.role) === -1) throw new Error("NOT_GYM_STAFF");
-    enqueue("unassignment", { memberId: memberId, assignmentId: assignmentId }, "unassignment:" + gym.id + ":" + assignmentId);
-    await flushQueue();
+    var operationId = enqueue("unassignment", { memberId: memberId, assignmentId: assignmentId }, "unassignment:" + gym.id + ":" + assignmentId);
+    return flushOperation(operationId);
   }
 
   async function sendMessage(message) {
     if (!session || !session.user || !gym) throw new Error("Giriş gerekli.");
-    enqueue("message", { recipientId: message.recipientId, clientMutationId: message.clientMutationId, body: message.body }, "message:" + message.clientMutationId);
-    await flushQueue();
+    var operationId = enqueue("message", { recipientId: message.recipientId, clientMutationId: message.clientMutationId, body: message.body }, "message:" + message.clientMutationId);
+    return flushOperation(operationId);
   }
 
   async function markMessagesRead(partnerId) {
@@ -790,23 +924,23 @@
   }
 
   async function saveCoachNote(memberId, note) {
-    enqueue("note", { memberId: memberId, note: note || "" }, "note:" + gym.id + ":" + memberId);
-    await flushQueue();
+    var operationId = enqueue("note", { memberId: memberId, note: note || "" }, "note:" + gym.id + ":" + memberId);
+    return flushOperation(operationId);
   }
 
   async function updateProfile(displayName) {
     if (!session || !session.user) throw new Error("Giriş gerekli.");
     var value = String(displayName || "").trim().slice(0, 80);
     if (!value) throw new Error("İsim ve soyisim gerekli.");
-    enqueue("profile", { displayName: value }, "profile:" + session.user.id);
-    return flushQueue();
+    var operationId = enqueue("profile", { displayName: value }, "profile:" + session.user.id);
+    return flushOperation(operationId);
   }
 
   async function exportCloudData() {
     if (!session || !gym) return;
     renderAccountManager("Veri paketi hazırlanıyor…");
     try {
-      var tables = ["profiles", "gym_memberships", "programs", "program_assignments", "workout_sessions", "member_snapshots", "chat_messages", "gym_exercises", "member_coach_notes", "consent_records", "user_devices", "audit_events"];
+      var tables = ["profiles", "gym_memberships", "programs", "program_assignments", "workout_sessions", "member_snapshots", "chat_messages", "consent_records", "user_devices", "audit_events"];
       var results = await Promise.all(tables.map(function (table) { return client.from(table).select("*"); }));
       results.forEach(function (result) { if (result.error) throw result.error; });
       var data = { format: "fittrack-cloud-export", exportedAt: new Date().toISOString(), appVersion: config.appVersion, userId: session.user.id, gymId: gym.id, data: {} };
@@ -842,26 +976,47 @@
   }
 
   async function handleForm(form) {
-    var type = form.dataset.cloudForm;
+    if (form.dataset.busy === "true" || otpSubmitting) return;
+    var type = form.dataset.cloudForm; form.dataset.busy = "true";
+    if (["login", "signup", "verify-otp", "request-recovery", "update-password"].indexOf(type) >= 0) otpSubmitting = true;
     setBusy(form, true);
     try {
       if (type === "login") {
         var loginEmail = form.querySelector("#authEmail").value.trim();
         if (!validEmail(loginEmail)) throw new Error("Geçerli bir e-posta adresi yaz.");
-        var loginResult = await client.auth.signInWithPassword({ email: loginEmail, password: form.querySelector("#authPassword").value });
-        if (loginResult.error) throw loginResult.error;
+        var loginPassword = form.querySelector("#authPassword").value;
+        if (!loginPassword) throw new Error("Şifreni yaz.");
+        pendingOtp = null; recoveryVerified = false; otpSequence += 1;
+        var loginResult = await client.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
+        if (loginResult.error) {
+          if (loginResult.error.code === "email_not_confirmed" || /email not confirmed/i.test(String(loginResult.error.message || ""))) {
+            return renderConfirmation(loginEmail, 0, "Kaydını tamamlamak için e-posta adresini doğrula. Önceki kodunu yazabilir veya yeni kod isteyebilirsin.");
+          }
+          throw loginResult.error;
+        }
+        if (!loginResult.data || !loginResult.data.session || !loginResult.data.session.user) throw new Error("Giriş tamamlanamadı. Tekrar dene.");
         await handleSession(loginResult.data.session);
+      } else if (type === "request-recovery") {
+        await requestEmailCode(form.querySelector("#recoveryEmail").value.trim(), "recovery");
+      } else if (type === "verify-otp") {
+        await verifyEmailCode(form.querySelector("#authOtp").value);
       } else if (type === "signup") {
         var signupEmail = form.querySelector("#authEmail").value.trim();
         if (!validEmail(signupEmail)) throw new Error("Geçerli bir e-posta adresi yaz. Örnek: ad@alanadi.com");
+        var password = form.querySelector("#authPassword").value;
+        var confirmation = form.querySelector("#authPasswordConfirm").value;
+        if (password.length < 8) throw new Error("Şifre en az 8 karakter olmalı.");
+        if (password !== confirmation) throw new Error("Şifreler birbiriyle eşleşmiyor.");
+        if (!form.querySelector("#authConsent").checked) throw new Error("Devam etmek için koşulları onayla.");
+        pendingOtp = null; recoveryVerified = false; otpSequence += 1;
         var signupResult = await client.auth.signUp({
           email: signupEmail,
-          password: form.querySelector("#authPassword").value,
+          password: password,
           options: { emailRedirectTo: config.authRedirectTo, data: { display_name: form.querySelector("#authName").value.trim() } }
         });
         if (signupResult.error) throw signupResult.error;
         if (!signupResult.data.session) renderConfirmation(signupEmail);
-        else { session = signupResult.data.session; await handleSession(session); }
+        else await handleSession(signupResult.data.session);
       } else if (type === "profile") {
         var setupRole = form.querySelector('input[name="setupRole"]:checked');
         var profileResult = await client.rpc("set_profile", { p_display_name: form.querySelector("#setupName").value.trim(), p_role_preference: setupRole ? setupRole.value : "member", p_consent_version: config.consentVersion });
@@ -894,33 +1049,47 @@
         if (String(form.querySelector("#deletePhrase").value || "").trim().toLocaleUpperCase("tr-TR") !== "SİL") return renderDeleteConfirm("Onay alanına SİL yazmalısın.");
         await deleteAccount();
       } else if (type === "update-password") {
+        if (!recoveryVerified || !session) throw new Error("Önce e-posta kodunu doğrula.");
         var newPassword = form.querySelector("#newPassword").value;
         var confirmPassword = form.querySelector("#confirmPassword").value;
         if (newPassword.length < 8) throw new Error("Şifre en az 8 karakter olmalı.");
         if (newPassword !== confirmPassword) throw new Error("Şifreler birbiriyle eşleşmiyor.");
         var updateResult = await client.auth.updateUser({ password: newPassword });
         if (updateResult.error) throw updateResult.error;
-        await handleSession(session);
+        recoveryVerified = false; await handleSession(session);
       }
     } catch (error) {
-      if (type === "login" || type === "signup") renderAuth(type === "signup" ? "signup" : "login", authError(error));
+      if (type === "verify-otp") renderOtp(authError(error));
+      else if (type === "request-recovery") renderRecovery(form.querySelector("#recoveryEmail").value, authError(error));
+      else if (type === "login" || type === "signup") {
+        var enteredName = type === "signup" ? form.querySelector("#authName").value : "";
+        renderAuth(type === "signup" ? "signup" : "login", authError(error), form.querySelector("#authEmail").value);
+        var nameInput = document.getElementById("authName"); if (nameInput && type === "signup") nameInput.value = enteredName;
+      }
       else if (type === "create-gym" || type === "join-gym") renderGymSetup(profile && profile.role_preference || "member", authError(error));
       else if (type === "create-invite") renderInviteManager(authError(error));
       else if (type === "delete-account") renderDeleteConfirm(authError(error));
       else if (type === "update-password") renderPasswordUpdate(authError(error));
       else renderProfileSetup(profile);
-    } finally { setBusy(form, false); }
+    } finally { otpSubmitting = false; form.dataset.busy = "false"; setBusy(form, false); }
   }
 
   async function handleClick(button) {
     var action = button.dataset.cloudAction;
-    if (action === "auth-tab") return renderAuth(button.dataset.mode || "login");
+    if (action === "toggle-password") {
+      var password = document.getElementById(button.dataset.input);
+      if (!password || password.disabled) return;
+      var visible = password.type === "password"; password.type = visible ? "text" : "password";
+      button.setAttribute("aria-pressed", String(visible)); button.setAttribute("aria-label", visible ? "Şifreyi gizle" : "Şifreyi göster"); return;
+    }
+    if (action === "welcome") { if (otpSubmitting) return; pendingOtp = null; recoveryVerified = false; otpSequence += 1; return renderWelcome(); }
+    if (action === "auth-tab") { if (otpSubmitting) return; pendingOtp = null; recoveryVerified = false; otpSequence += 1; return renderAuth(button.dataset.mode || "login"); }
+    if (action === "change-otp-email") { if (otpSubmitting) return; var previousEmail = pendingOtp && pendingOtp.email; pendingOtp = null; recoveryVerified = false; otpSequence += 1; return renderAuth("login", "", previousEmail); }
+    if (action === "resend-otp") { if (!pendingOtp || otpSubmitting) return; otpSubmitting = true; try { await requestEmailCode(pendingOtp.email, pendingOtp.kind); } catch (error) { renderOtp(authError(error)); } finally { otpSubmitting = false; } return; }
     if (action === "forgot-password") {
       var email = authLayer.querySelector("#authEmail");
-      if (!email || !email.value.trim()) return renderAuth("login", "Önce e-posta adresini yaz, sonra şifremi unuttum seçeneğine dokun.");
-      if (!validEmail(email.value)) return renderAuth("login", "Geçerli bir e-posta adresi yaz. Örnek: ad@alanadi.com");
-      var reset = await client.auth.resetPasswordForEmail(email.value.trim(), { redirectTo: config.authRedirectTo });
-      return renderAuth("login", reset.error ? authError(reset.error) : "Şifre yenileme bağlantısı e-postana gönderildi.");
+      if (otpSubmitting) return;
+      return renderRecovery(email ? email.value.trim() : "");
     }
     if (action === "copy-invite") {
       var code = button.dataset.code || lastInvite;
@@ -938,8 +1107,7 @@
     if (action === "delete-account") return renderDeleteConfirm();
     if (action === "sign-out" || action === "sign-out-all") {
       var scope = action === "sign-out-all" ? "global" : "local";
-      await client.auth.signOut({ scope: scope });
-      return handleSession(null);
+      explicitSignOut=true;try { await client.auth.signOut({ scope: scope });return await handleSession(null); } finally { explicitSignOut=false; }
     }
   }
 
@@ -956,19 +1124,19 @@
       return;
     }
     client = window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: !isNative(), storageKey: "fittrack-beta-010-auth" },
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "fittrack-beta-010-auth" },
       realtime: { params: { eventsPerSecond: 4 } }
     });
     client.auth.onAuthStateChange(function (event, nextSession) {
-      if (event === "TOKEN_REFRESHED") { session = nextSession; registerDevice().catch(function () {}); }
-      if (event === "SIGNED_OUT") window.setTimeout(function () { handleSession(null); }, 0);
-      if (event === "PASSWORD_RECOVERY") window.setTimeout(function () { renderPasswordUpdate(); }, 0);
+      if (event === "TOKEN_REFRESHED" && session && nextSession && session.user.id === nextSession.user.id) { session = nextSession; registerDevice().catch(function () {}); }
+      if (event === "SIGNED_OUT") { var expired=Boolean(session && !explicitSignOut);window.setTimeout(function () { handleSession(null).then(function(){if(expired)renderSessionExpired();}); }, 0); }
+      if (event === "PASSWORD_RECOVERY") window.setTimeout(function () { if (!pendingOtp && session) { recoveryVerified = true; renderPasswordUpdate(); } }, 0);
     });
     var deepLinkHandled = await registerAuthDeepLinks();
     if (deepLinkHandled) return;
     if (!navigator.onLine && resumeOfflineAccount()) return;
     var result = await client.auth.getSession();
-    if (result.error) { if (resumeOfflineAccount()) { setStatus("error", "Oturum sunucuda doğrulanamadı; yerel verilerin açık"); return; } return renderAuth("login", authError(result.error)); }
+    if (result.error) { if (!navigator.onLine && resumeOfflineAccount()) return; return renderAuth("login", authError(result.error)); }
     if ((!result.data || !result.data.session) && !navigator.onLine && resumeOfflineAccount()) return;
     await handleSession(result.data.session);
   }
@@ -1020,9 +1188,8 @@
     sendMessage: sendMessage,
     markMessagesRead: markMessagesRead,
     saveCoachNote: saveCoachNote,
+    deleteWorkout: deleteWorkout,
     updateProfile: updateProfile,
-    saveGymExercise: function (exercise) { enqueue("gym-exercise", { exercise: exercise, active: true }, "gym-exercise:" + gym.id + ":" + exercise.id); return flushQueue(); },
-    deleteGymExercise: function (exercise) { enqueue("gym-exercise", { exercise: exercise, active: false }, "gym-exercise:" + gym.id + ":" + exercise.id); return flushQueue(); },
     syncNow: function () { scheduleStateSync(true); return flushQueue(); },
     showAccount: renderAccountManager,
     showInviteManager: renderInviteManager,

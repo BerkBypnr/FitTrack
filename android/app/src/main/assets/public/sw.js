@@ -1,4 +1,4 @@
-var CACHE_NAME = "fittrack-v0114";
+var CACHE_NAME = "fittrack-v0144";
 
 self.addEventListener("install", function (event) {
   event.waitUntil(
@@ -7,13 +7,23 @@ self.addEventListener("install", function (event) {
         "./",
         "./index.html",
         "./styles.css",
+        "./member-ui.css",
+        "./design-system.css",
+        "./workout-ui.css",
+        "./reference-ui.css",
+        "./assets/posters/bench-press.png",
+        "./assets/posters/goblet-squat.png",
+        "./assets/posters/lat-pulldown.png",
+        "./assets/posters/push-up.png",
+        "./assets/posters/bodyweight-squat.png",
+        "./assets/posters/seated-cable-row.png",
+        "./assets/brand/welcome-dumbbell.png",
         "./app.js",
         "./config.js",
         "./cloud.js",
         "./vendor/supabase.min.js",
         "./manifest.webmanifest",
         "./icon.svg",
-        "./assets/fonts/InterVariable.woff2",
         "./assets/bench-press.jpg",
         "./assets/goblet-squat.jpg",
         "./assets/lat-pulldown.jpg"
@@ -23,36 +33,6 @@ self.addEventListener("install", function (event) {
         ,"./assets/gifs/push-up.gif"
         ,"./assets/gifs/bodyweight-squat.gif"
         ,"./assets/gifs/seated-cable-row.gif"
-        ,"./assets/gifs/incline-db-press.gif"
-        ,"./assets/gifs/pec-deck.gif"
-        ,"./assets/gifs/cable-crossover.gif"
-        ,"./assets/gifs/overhead-press.gif"
-        ,"./assets/gifs/lateral-raise.gif"
-        ,"./assets/gifs/face-pull.gif"
-        ,"./assets/gifs/triceps-pushdown.gif"
-        ,"./assets/gifs/dips.gif"
-        ,"./assets/gifs/barbell-row.gif"
-        ,"./assets/gifs/one-arm-row.gif"
-        ,"./assets/gifs/pull-up.gif"
-        ,"./assets/gifs/biceps-curl.gif"
-        ,"./assets/gifs/hammer-curl.gif"
-        ,"./assets/gifs/back-squat.gif"
-        ,"./assets/gifs/leg-press.gif"
-        ,"./assets/gifs/romanian-deadlift.gif"
-        ,"./assets/gifs/leg-curl.gif"
-        ,"./assets/gifs/leg-extension.gif"
-        ,"./assets/gifs/calf-raise.gif"
-        ,"./assets/gifs/hip-thrust.gif"
-        ,"./assets/gifs/walking-lunge.gif"
-        ,"./assets/gifs/deadlift.gif"
-        ,"./assets/gifs/glute-bridge.gif"
-        ,"./assets/gifs/plank.gif"
-        ,"./assets/gifs/crunch.gif"
-        ,"./assets/gifs/hanging-leg-raise.gif"
-        ,"./assets/gifs/russian-twist.gif"
-        ,"./assets/gifs/mountain-climber.gif"
-        ,"./assets/gifs/kettlebell-swing.gif"
-        ,"./assets/gifs/burpee.gif"
       ]);
     })
   );

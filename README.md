@@ -1,50 +1,104 @@
-# FitTrack Beta 0.11.4 — Android/Capacitor kaynak projesi
+# FitTrack Beta 0.14.3 — referans UI güncellemesi
 
-Bu paket, FitTrack Beta 0.11.4 web uygulamasını, Android projesini, Supabase migration/RLS değişikliklerini ve hareket GIF üretim kaynaklarını içerir.
+Sürüm **0.14.3 / versionCode 35**, doğrudan taban 0.14.2, veri şeması 15.
 
-## Sabit sürüm bilgileri
+Önce `BETA_0.14.3_NOTLARI.md` dosyasını okuyun. Teslim paketindeki 0.14.3 devir ve telefon test belgeleri güncel sürüm içindir. Aşağıdaki 0.14.2 açıklaması önceki sürümün tarihsel notlarıdır.
 
-- Uygulama sürümü: `0.11.4`
-- Android `versionCode`: `21`
-- Paket kimliği: `com.fittracklabs.mobile`
-- `minSdk`: `24`
-- `targetSdk` / `compileSdk`: `36`
-- Web kaynağı: `www/`
+---
 
-## Gereksinimler
+# FitTrack Beta 0.14.2 — telefon geri bildirimi UI düzeltmesi
 
-- Node.js 22 veya daha yeni
-- pnpm 11.19.0
-- JDK 21
-- Android SDK Platform 36 ve Build Tools 36.0.0
+Sürüm **0.14.2 / versionCode 34**, paket `com.fittracklabs.mobile`, min API 24 /
+target API 36, yerel veri şeması 15. Doğrudan taban 0.14.1'dir. Önceki profil,
+logo, tema, Auth ve Android dosya seçicisi düzeltmeleri korunur.
 
-## Temiz makinede derleme
+**Önce oku:** `docs/FITTRACK_ALPER_CHATGPT_DEVIR_v0.14.2.md`.
+**Telefon kabulü:** `docs/FITTRACK_v0.14.2_TELEFON_TESTLERI.md`.
+**Ölçüm sözleşmesi:** `docs/UI_0140_OLCUM_SOZLESMESI.md`.
 
-```powershell
-pnpm install --frozen-lockfile
-pnpm cap:sync
-Set-Location android
-.\gradlew.bat assembleRelease
+Bu sürüm 0.14.0 yerleşimini onaylı temiz UI paketine uyarlar ve yazıları büyütür.
+Aktif sette ortak başlıklı tablo, geçmişte kompakt fotoğraflı kartlar ve özette
+kayıtlı verilerden hızlı istatistikler vardır. BETA_0.14.2_NOTLARI.md değişiklikleri açıklar.
+
+Bu ikinci UI aşaması altı ölçüm profilini, üstte sabit GIF ve aynı ekranda bütün
+setleri, manuel hareket geçişini, önceki değer uygulamasını, fotoğraflı tek-kaydet
+geçmiş düzenlemesini ve sade özeti içerir. Dinlenme sayacı yoktur.
+Ad-soyad alt alta; kilo/hedef kilo cetvelinin klavye sonrası kaybolması düzeltildi.
+Tüm final UI paketi bitmiş değildir: üye ekranları 0.15, antrenör iş akışları 0.16.
+GitHub'a push/PR/merge ve canlı Supabase değişikliği yapılmamıştır.
+
+Fiziksel Android kabulü açık: özellikle önceki T01 (profil dönüş/klavye), T02 (cihaza
+yedek kaydı) ve daha önce denenemeyen K35, otomatik test geçti diye kapanmaz.
+`docs/` altındaki eski sürüm belgeleri tarihsel kayıttır; bu README ve v0.14.2 devri günceldir.
+Yeni ölçümlü pilot hesapların bütün cihazları ve antrenörü 0.14'e güncellenmelidir;
+eski uygulamalar ileri şemayı güvenle düzenleyemez. Sunucu minimum sürüm kapısı yoktur.
+
+## Kaynak düzeni
+
+- Kökteki JS/HTML/CSS, `assets/` ve `vendor/`: uygulamanın asıl web kaynakları.
+- `android/`: Java MainActivity, Gradle wrapper ve gerçek Capacitor Android projesi.
+- `www/`: `stage_web.cjs` ile yeniden oluşturulan geçici web çıktısı; ZIP'e girmez.
+- `android/app/src/main/assets/public/`: `cap sync android` çıktısı; doğrudan düzenlemeyin.
+- `legacy/android-0.11.9/`: eski APK'dan türetilmiş Smali/XML köken arşivi. Yeni build bunu kullanmaz.
+- `supabase/`: mevcut SQL, migration, şablon ve Edge Function kaynakları; bu sürümde değişmedi.
+- `docs/references/`: özgün yol haritası, 9 Eylül UI ZIP'i ve tarihsel devirler.
+- `tests/`, `test-results/`: çalıştırılabilir kontroller ve son yerel kanıtlar.
+
+İptal edilmiş Alper validation ağacı kullanılmadı. Bu proje React/Vite değildir.
+A/“UI hazırlığı” belgeleri tarihsel ara sonuçlardır; güncel durum yukarıdaki devirde.
+
+## Kurulum ve üretim
+
+Node 22+ (testte 24), JDK 21, Python 3.10+, Android SDK gerekir.
+SDK'da `platforms;android-36`, `build-tools;35.0.0`, `build-tools;36.0.0` kurulu ve
+lisanslar kabul edilmiş olmalı. `JAVA_HOME` ve `ANDROID_HOME` ortam değişkenlerini
+kendi kurulumunuza göre tanımlayın. Gradle 8.14.3 wrapper arşivi SHA-256 ile sabitlidir;
+AGP 8.13.0, npm sürümleri ve kilit dosyası kaynakta bulunur. İlk kurulum internet ister.
+
+```sh
+npm ci --ignore-scripts
+npm test
+python3 scripts/build_android.py
+# Mevcut beta imza anahtarı ve dört özel ortam değişkeni hazırsa:
+python3 scripts/build_android.py --sign
 ```
 
-Gradle çıktısı imzasız release APK’dır. Kurulabilir dağıtım APK’sı üretmek için yetkili FitTrack imzalama anahtarıyla `zipalign` ve `apksigner` çalıştırılmalıdır. Bu doğrulama teslimatında kullanılan sertifikanın SHA-256 değeri `38:A4:AB:A9:51:48:DF:CF:9C:67:B9:36:FB:02:68:B5:88:78:A1:D2:2D:67:EF:78:96:89:87:9C:75:6C:C4:CE` olmalıdır. İmzalama anahtarı, parola veya başka bir gizli bilgi bu kaynak paketinde bulunmaz.
+`--output /path` çıktı klasörünü, `--gradle /path/to/gradle` isteğe bağlı Gradle
+çalıştırıcısını seçer. `--offline` yalnız hazır Gradle bağımlılıklarıyla çalışır;
+boş bir makineyi internetsiz hazırlamaz. Eski Apktool betiğinin `--tools` seçeneği yoktur.
+Betik web staging → Capacitor sync → temiz Gradle release → isteğe bağlı imza üretir.
+Varsayılan çıktı `out/`; unsigned APK kullanıcıya kurulacak beta yerine geçmez.
 
-Yerel Android SDK konumu gerektiğinde `android/local.properties` içinde `sdk.dir=...` olarak tanımlanır; bu makineye özel dosya pakete dahil edilmez.
+İmza girdileri: `FITTRACK_KEYSTORE`, `FITTRACK_KEY_ALIAS`, `FITTRACK_STORE_PASSWORD`,
+`FITTRACK_KEY_PASSWORD`. Değerlerini kaynak veya rapora koymayın. Orijinal anahtar
+Berk'in özel paylaşımındadır; yeni anahtarla güncelleme zincirini değiştirmeyin.
+Betik imzadan sonra resmi apksigner ile doğrular ve beklenen sertifikayı denetler.
 
-## Doğrulama
-
-```powershell
-pnpm test
+```sh
+python3 -m pip install -r tests/requirements-apk.txt
+FITTRACK_APK=/path/FitTrack-Android-v0.14.2-beta-signed.apk python3 tests/apk_inspect.py
+python3 scripts/package_source.py --output /path/FitTrack-Beta-0.14.2-Source.zip
 ```
 
-Doğrulama betiği web kaynak bütünlüğünü, sürüm eşleşmesini, Android yapılandırmasını, Capacitor eklentilerini, orijinal FitTrack ikon/splash kaynaklarını, 36 hareket GIF’ini, Program Builder güvenlik işaretlerini, yönetici ekranlarını ve 0.11.4 RLS migration içeriğini denetler.
+Paketleyici anahtar/derleme dosyalarını dışlar, seçili sır örüntülerinde durur,
+ZIP CRC'sini kontrol eder ve `gradlew` çalıştırma iznini korur.
+`.github/workflows/verify.yml` temiz CI taslağıdır; uzakta çalıştırıldığı iddia edilmez.
+Yerel VM/DOM/PostgreSQL ve APK incelemesi, gerçek cihaz/render/SMTP kabulünün yerine geçmez.
 
-## Dizinler
+## Bu teslimin üretimi ve tarayıcı testi
 
-- `www/`: Beta 0.11.4 web uygulaması ve Supabase SQL migration dosyaları
-- `android/`: yeniden oluşturulan Android/Gradle projesi
-- `scripts/`: yapı/bütünlük doğrulaması ve hareket GIF üretim aracı
-- `source-assets/exercise-sprites/`: özgün hareket GIF’lerinin yeniden üretilebilir kaynak kareleri
-- `checksums/`: teslim edilen 0.11.4 web kaynaklarının SHA-256 listesi
+Tam Gradle cache/SDK bulunmadığından teslim edilen beta APK, doğrulanmış 0.14.1
+APK'nın web kaynakları değiştirilerek üretildi. DEX, ikon, izinler ve native ayarlar
+aynıdır. Bu bir temiz Gradle build değildir. `scripts/repack_web_apk.py` denetimli
+alternatif üretim yoludur; native değişiklik için kullanılmaz. APK/source ve aynı
+sertifika denetimleri `test-results/apk-inspection.json` dosyasındadır.
 
-0.11.4 migration dosyası salon hareket kütüphanesini ve program atama notundan ayrı genel üye takip notunu ekler. Bu migration dağıtım öncesi Supabase SQL Editor veya migration hattında uygulanmalıdır.
+```sh
+# Playwright ve Chromium kurulu bir test ortamında:
+node tests/browser-0142.cjs
+# Hazır Chromium paketi kullanıldığında opsiyonel değişken:
+# FITTRACK_CHROMIUM_PACKAGE=/absolute/path/to/@sparticuz/chromium
+```
+
+Tarayıcı testi yalnız sentetik yerel veri kullanır, dış ağ erişimini engeller.
+0.14.2 ortamında Chromium bulunmadığı için tarayıcı testi çalıştırılmadı; fiziksel telefon kabulü açıktır.
