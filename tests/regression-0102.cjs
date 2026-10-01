@@ -11,13 +11,13 @@ const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 const config = fs.readFileSync(path.join(root, "config.js"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
-assert.match(app, /var VERSION = "0\.14\.4"/, "Uygulama sürümü 0.14.4 değil.");
-assert.match(config, /appVersion: "0\.14\.4"/, "Bulut cihaz sürümü 0.14.4 değil.");
-assert.match(index, /app\.js\?v=0\.14\.4/, "Web önbellek kırıcı sürümü güncel değil.");
+assert.match(app, /var VERSION = "0\.15\.0"/, "Uygulama sürümü 0.15.0 değil.");
+assert.match(config, /appVersion: "0\.15\.0"/, "Bulut cihaz sürümü 0.15.0 değil.");
+assert.match(index, /app\.js\?v=0\.15\.0/, "Web önbellek kırıcı sürümü güncel değil.");
 
 assert(!app.includes("Hazırlık formu yok"), "Eski teknik ana ekran metni kaldırılmadı.");
-assert(app.includes("homeMotivation"), "Duruma göre motivasyon metni eksik.");
-assert(app.includes("assigned-program-detail") && app.includes("İncele"), "Atanan antrenman önizleme eylemi eksik.");
+assert(app.includes("renderMemberHomeHeader") && app.includes("Merhaba "), "Üye ana sayfası karşılaması eksik.");
+assert(app.includes("assigned-program-detail") && app.includes("programını incele"), "Atanan antrenman önizleme eylemi eksik.");
 
 assert(app.includes("normalizeProgramDay"), "Çok günlü program veri modeli eksik.");
 assert(app.includes("studio-add-day"), "Program günü ekleme eylemi eksik.");

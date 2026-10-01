@@ -1,8 +1,10 @@
-# FitTrack Beta 0.14.3 — referans UI güncellemesi
+# FitTrack Beta 0.15.0 — üye ana sayfası
 
-Sürüm **0.14.3 / versionCode 35**, doğrudan taban 0.14.2, veri şeması 15.
+Sürüm **0.15.0 / versionCode 37**, doğrudan taban 0.14.4, veri şeması 15.
 
-Önce `BETA_0.14.3_NOTLARI.md` dosyasını okuyun. Teslim paketindeki 0.14.3 devir ve telefon test belgeleri güncel sürüm içindir. Aşağıdaki 0.14.2 açıklaması önceki sürümün tarihsel notlarıdır.
+Önce `BETA_0.15.0_NOTLARI.md` dosyasını okuyun. Bu sürüm yalnız üye ana
+sayfasını final UI kararına taşır; aktif antrenman, program seçimi ve antrenör
+ekranları 0.14.4 davranışını korur. Aşağıdaki 0.14.2 açıklaması tarihsel kayıttır.
 
 ---
 

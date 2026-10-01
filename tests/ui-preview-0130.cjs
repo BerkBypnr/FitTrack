@@ -7,7 +7,7 @@ http.createServer((req,res)=>{
   const url=new URL(req.url,'http://127.0.0.1');res.setHeader('Cache-Control','no-store');
   if(url.pathname==='/'||url.pathname==='/index.html'){
     let html=fs.readFileSync(path.join(root,'index.html'),'utf8').replace(/<script src="\.\/(vendor\/supabase\.min|config)\.js[^>]*><\/script>/g,'');
-    html=html.replace('<script src="./cloud.js','<script>window.FITTRACK_CONFIG={localPreviewOnDesktop:true,appVersion:"0.14.4",authRedirectTo:"com.fittracklabs.mobile://auth-callback"};</script><script src="./cloud.js');
+    html=html.replace('<script src="./cloud.js','<script>window.FITTRACK_CONFIG={localPreviewOnDesktop:true,appVersion:"0.15.0",authRedirectTo:"com.fittracklabs.mobile://auth-callback"};</script><script src="./cloud.js');
     res.setHeader('Content-Type','text/html');return res.end(html);
   }
   const name=decodeURIComponent(url.pathname.slice(1));const file=path.resolve(root,name);

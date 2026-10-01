@@ -38,7 +38,7 @@ async function test(name,fn){try{await fn();results.push({name,status:'PASS'});}
   const r=fresh(),a=r.app;setupWorkout(r);a.state.currentWorkout=null;a.openSessionPicker(false);assert.equal(a.state.currentWorkout,null);a.ui.sessionDayId=a.currentProgram().days[0].id;a.beginWorkoutSession();assert.match(r.elements.flowLayer.innerHTML,/countdown-flow/);assert.ok(a.state.currentWorkout);a.pauseWorkout();assert.equal(a.state.currentWorkout.status,'paused');assert.equal(a.ui.countdownTimer,null);
  });
  await test('Production bundles ship the new stylesheet and contain no QA exports',()=>{
-  assert.match(fs.readFileSync(path.join(root,'index.html'),'utf8'),/reference-ui.css\?v=0.14.4/);assert.match(fs.readFileSync(path.join(root,'sw.js'),'utf8'),/reference-ui.css/);
+  assert.match(fs.readFileSync(path.join(root,'index.html'),'utf8'),/reference-ui.css\?v=0.15.0/);assert.match(fs.readFileSync(path.join(root,'sw.js'),'utf8'),/reference-ui.css/);
   for(const name of ['app.js','cloud.js'])assert.doesNotMatch(fs.readFileSync(path.join(root,name),'utf8'),/window\.__qa/);
  });
  await test('Finishing a duration workout stops the stopwatch before history is captured',()=>{

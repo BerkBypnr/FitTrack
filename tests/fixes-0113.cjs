@@ -11,10 +11,10 @@ const config = fs.readFileSync(path.join(root, "config.js"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 
-assert.match(app, /var VERSION = "0\.14\.4"/, "0.14.4 uygulama sürümü eksik.");
-assert.match(config, /appVersion: "0\.14\.4"/, "0.14.4 bulut sürümü eksik.");
-assert(index.includes("styles.css?v=0.14.4") && index.includes("app.js?v=0.14.4"), "0.14.4 önbellek kırıcıları eksik.");
-assert(sw.includes('fittrack-v0144'), "0.14.4 service worker önbelleği eksik.");
+assert.match(app, /var VERSION = "0\.15\.0"/, "0.15.0 uygulama sürümü eksik.");
+assert.match(config, /appVersion: "0\.15\.0"/, "0.15.0 bulut sürümü eksik.");
+assert(index.includes("styles.css?v=0.15.0") && index.includes("app.js?v=0.15.0"), "0.15.0 önbellek kırıcıları eksik.");
+assert(sw.includes('fittrack-v0150'), "0.15.0 service worker önbelleği eksik.");
 
 assert.match(app, /\["Bilgiler", "Günler", "Hareketler", "Kontrol"\]/, "Dört adımlı program oluşturucu eksik.");
 assert.match(app, /function studioStepCanContinue\(step\)/, "Adım doğrulaması eksik.");

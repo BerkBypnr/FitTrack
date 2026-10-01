@@ -1,7 +1,7 @@
 'use strict';
 const {spawnSync}=require('node:child_process'),fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
-const suites=['fixes-01031','fixes-01032','fixes-0110','fixes-0111','fixes-0112','fixes-0113','regression-0102','runtime-0110','review/review','hotfix-0114','auth-0116','database-0114','themes-0116','member-ui-0117','navigation-0118','migration-baseline-0120','trainer-ui-0120','release-0120','phone-fixes-0121','hotfix-0122','design-system-0130','hotfix-0131','workout-0140','hotfix-0142','reference-0143'];
+const suites=['fixes-01031','fixes-01032','fixes-0110','fixes-0111','fixes-0112','fixes-0113','regression-0102','runtime-0110','review/review','hotfix-0114','auth-0116','database-0114','themes-0116','member-ui-0117','navigation-0118','migration-baseline-0120','trainer-ui-0120','release-0120','phone-fixes-0121','hotfix-0122','design-system-0130','hotfix-0131','workout-0140','hotfix-0142','reference-0143','member-home-0150'];
 const results=[];
 // macOS Node 24 JIT can segfault while creating many VM contexts; this VM suite needs no WASM.
 for(const suite of suites){const nodeFlags=suite==='review/review'?['--jitless']:[];const result=spawnSync(process.execPath,[...nodeFlags,path.join(root,'tests',suite+'.cjs')],{cwd:root,encoding:'utf8',timeout:120000});const passed=result.status===0;results.push({suite,status:passed?'PASS':'FAIL',error:result.error?.message||null,signal:result.signal||null,nodeFlags});fs.writeFileSync(path.join(root,'test-results',suite.replaceAll('/','-')+'.log'),result.stdout+result.stderr);console.log(passed?'PASS':'FAIL',suite);if(!passed)console.error((result.stdout+result.stderr).slice(0,2000));}
