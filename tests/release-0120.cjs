@@ -66,7 +66,7 @@ test('Native bootstrap does not reload a clean app and retries safely after a ca
 });
 test('Release identity and native controls match the upgrade contract',()=>{
  const read=p=>fs.readFileSync(path.join(root,p),'utf8');
- assert.equal(JSON.parse(read('package.json')).version,'0.15.0');assert.match(read('android/app/build.gradle'),/versionCode 37/);assert.match(read('android/app/build.gradle'),/versionName "0.15.0"/);
+ assert.equal(JSON.parse(read('package.json')).version,'0.15.0');assert.match(read('android/app/build.gradle'),/versionCode 38/);assert.match(read('android/app/build.gradle'),/versionName "0.15"/);
  const config=JSON.parse(read('capacitor.config.json'));assert.equal(config.server.hostname,'localhost');assert.equal(config.plugins.App.disableBackButtonHandler,true);
  assert.match(read('styles.css'),/--safe-top: var\(--safe-area-inset-top, env\(safe-area-inset-top, 0px\)\)/);
  assert.match(read('android/gradle/wrapper/gradle-wrapper.properties'),/distributionSha256Sum=[0-9a-f]{64}/);

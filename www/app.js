@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var VERSION = "0.15.0";
+  var VERSION = "0.15";
   var SCHEMA = 15;
   var STORAGE_KEY = "fittrack-beta-010-state";
   var ACCOUNT_KEY_PREFIX = "fittrack-beta-010-user-";
@@ -748,22 +748,32 @@
     return '<article class="card member-home-recovery"><p class="eyebrow">YARIM KALAN ANTRENMAN</p><h2>' + esc(program.name) + '</h2><p>Program ataması kaldırılmış olsa da başladığın antrenmanı bitirebilir veya iptal edebilirsin.</p><div><button class="primary-btn" data-action="start">Devam et</button><button class="secondary-btn" data-action="confirm-cancel">İptal et</button></div></article>';
   }
 
-  function memberWeekDays(items) {
-    var labels = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"], monday = mondayFor(todayKey()), done = {};
+  function memberWeekDays(items, partials) {
+    var labels = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"], monday = mondayFor(todayKey()), done = {}, partial = {};
     items.forEach(function (item) { done[item.date] = true; });
+    partials.forEach(function (item) { partial[item.date] = true; });
     return labels.map(function (label, index) {
-      var key = addDays(monday, index), classes = [done[key] ? "done" : "", key === todayKey() ? "today" : ""].filter(Boolean).join(" ");
-      return '<div class="member-week-day ' + classes + '"><small>' + label + '</small><span aria-label="' + (done[key] ? label + ' tamamlandı' : label + ' tamamlanmadı') + '">' + (done[key] ? "✓" : "–") + '</span></div>';
+      var key = addDays(monday, index), status = done[key] ? "done" : partial[key] ? "partial" : "";
+      var classes = [status, key === todayKey() ? "today" : ""].filter(Boolean).join(" ");
+      return '<div class="member-week-day ' + classes + '"><small>' + label + '</small><span aria-label="' + label + (status === "done" ? ' tamamlandı' : status === "partial" ? ' yarım kaldı' : ' antrenman yok') + '">' + (status === "done" ? "✓" : status === "partial" ? "½" : "–") + '</span></div>';
     }).join("");
   }
 
-  function renderMemberWeek(assigned) {
-    var start = mondayFor(todayKey()), end = addDays(start, 7), scheduled = {};
-    var items = completedHistory().filter(function (item) { return !item.isDemo && item.date >= start && item.date < end && item.date <= todayKey(); });
-    assigned.forEach(function (entry) { programTrainingWeekdays(entry.program).forEach(function (day) { scheduled[day] = true; }); });
-    var goal = Object.keys(scheduled).length || assigned.reduce(function (sum, entry) { return sum + programDays(entry.program).length; }, 0);
+  function renderMemberWeek() {
+    var start = mondayFor(todayKey()), end = addDays(start, 7);
+    var weekly = state.history.filter(function (item) { return !item.isDemo && item.date >= start && item.date < end && item.date <= todayKey(); });
+    var items = weekly.filter(function (item) { return item.status !== "partial"; });
+    var partials = weekly.filter(function (item) { return item.status === "partial"; });
     var minutes = items.reduce(function (sum, item) { return sum + Math.max(0, Number(item.duration) || 0); }, 0);
-    return '<section class="member-home-week" aria-labelledby="memberWeekTitle"><div class="member-section-head"><h2 id="memberWeekTitle">Bu hafta</h2><button data-action="nav" data-tab="progress"><b>' + items.length + (goal ? ' / ' + goal : '') + '</b> antrenman</button></div><div class="member-week-days">' + memberWeekDays(items) + '</div><div class="member-quick-stats"><button data-action="nav" data-tab="progress"><span>' + icons.dumbbell + '</span><small>Antrenman</small><strong>' + items.length + '</strong></button><button data-action="nav" data-tab="progress"><span>' + icons.clock + '</span><small>Toplam süre</small><strong>' + formatDuration(minutes) + '</strong></button></div></section>';
+    var sets = items.reduce(function (sum, item) { return sum + historySetCount(item); }, 0);
+    var stats = [[icons.dumbbell, items.length, "Antrenman"], [icons.clock, formatDuration(minutes), "Süre"], [icons.chart || icons.dumbbell, sets, "Set"]];
+    return '<section class="card member-home-week" aria-labelledby="memberWeekTitle"><h2 id="memberWeekTitle">Bu haftaki antrenmanların</h2><div class="member-week-days">' + memberWeekDays(items, partials) + '</div><p class="member-week-caption">' + items.length + ' antrenman tamamlandı' + (partials.length ? ' · ' + partials.length + ' yarım' : '') + '</p></section><section class="member-home-stats"><div class="member-section-head"><h2>Hızlı istatistikler</h2><span class="member-period">Bu hafta</span></div><div class="member-quick-stats">' + stats.map(function (stat) { return '<button data-action="nav" data-tab="progress"><span>' + stat[0] + '</span><strong>' + stat[1] + '</strong><small>' + stat[2] + '</small></button>'; }).join("") + '</div></section>';
+  }
+
+  function renderMemberLastWorkout() {
+    var last = state.history.filter(function (item) { return !item.isDemo && item.date <= todayKey(); }).slice().sort(function (a, b) { return String(b.date).localeCompare(String(a.date)) || String(b.finishedAt || b.createdAt || b.id).localeCompare(String(a.finishedAt || a.createdAt || a.id)); })[0];
+    if (!last) return '<article class="card member-last-workout"><span>' + icons.dumbbell + '</span><div><strong>Son antrenmanın</strong><small>İlk antrenmanın burada görünecek.</small></div></article>';
+    return '<button class="card member-last-workout" data-action="history-detail" data-id="' + esc(last.id) + '"><span>' + icons.dumbbell + '</span><div><strong>Son antrenmanın</strong><small>' + esc(last.name) + ' · ' + formatDuration(last.duration) + (last.status === "partial" ? ' · Yarım' : '') + '</small></div>' + icons.arrow + '</button>';
   }
 
   function renderMemberCoach() {
@@ -773,7 +783,7 @@
   function renderHome() {
     if (isCloudStaff()) return renderTrainerHome();
     var assigned = assignedPrograms();
-    screen.innerHTML = '<div class="member-home">' + renderMemberHomeHeader() + renderMemberRecovery(assigned) + renderMemberPrograms(assigned) + renderMemberWeek(assigned) + renderMemberCoach() + '</div>';
+    screen.innerHTML = '<div class="member-home">' + renderMemberHomeHeader() + renderMemberRecovery(assigned) + renderMemberPrograms(assigned) + renderMemberWeek() + renderMemberLastWorkout() + '</div>';
   }
 
   function programWeekdays(program) {

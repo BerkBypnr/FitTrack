@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var VERSION = "0.14.4";
+  var VERSION = "0.15";
   var SCHEMA = 15;
   var STORAGE_KEY = "fittrack-beta-010-state";
   var ACCOUNT_KEY_PREFIX = "fittrack-beta-010-user-";
@@ -670,7 +670,7 @@
     if(copy)node.innerHTML='<span aria-hidden="true">'+(status==='syncing'?'↻':'ⓘ')+'</span><div><strong>'+copy[0]+'</strong><small>'+copy[1]+'</small></div><button data-action="retry-sync" aria-label="Tekrar eşitle">↻</button>';
   }
   function renderHeader() { renderSyncNotice();
-    if (ui.tab === "programs" || ui.tab === "profile") { topbar.classList.add("minimal-hidden"); topbar.innerHTML = ""; return; }
+    if (ui.tab === "programs" || ui.tab === "profile" || (!isCloudStaff() && ui.tab === "home")) { topbar.classList.add("minimal-hidden"); topbar.innerHTML = ""; return; }
     topbar.classList.remove("minimal-hidden");
     var cloudStatus = state.cloud && state.cloud.status || "signed-out";
     var unread = totalUnreadMessages();
@@ -726,78 +726,64 @@
     var coachId = state.gym.coachId || "coach-demo"; var coachUnread = unreadFrom(coachId); var last = lastChatMessage(coachId);
     return '<section class="section home-messages"><div class="section-head"><div><p class="section-label">ANTRENÖRÜN</p><h2>Mesajlaş</h2></div>' + (coachUnread ? '<span class="program-badge">' + coachUnread + ' yeni</span>' : '') + '</div><button class="card home-message-card" data-action="open-chat" data-partner-id="' + esc(coachId) + '"><span class="coach-avatar">' + esc(initials(state.gym.coach)) + '</span><span class="home-message-copy"><small>' + esc(state.gym.coach) + ' · ' + esc(state.gym.name) + '</small><h3>' + (coachUnread ? 'Yeni mesajın var' : 'Antrenörünle bağlantıda kal') + '</h3><p>' + esc(shortMessagePreview(last, currentCoachNote())) + '</p><b>Sohbeti aç</b></span>' + (coachUnread ? '<span class="unread-badge">' + coachUnread + '</span>' : '') + '<span class="small-arrow">' + icons.arrow + '</span></button></section>';
   }
-  function homeMotivation() {
-    if (state.currentWorkout) return { title: "Ritmi bozma, " + state.profile.firstName + ".", copy: "Kaldığın set hazır. Devam etmek için dokun." };
-    if (state.history.some(function (item) { return item.date === todayKey() && item.status !== "partial"; })) return { title: "Bugünün işi tamam, " + state.profile.firstName + ".", copy: "Şimdi toparlan; bir sonraki antrenman için güç biriktir." };
-    var messages = [
-      { title: "Bugünün işi belli, " + state.profile.firstName + ".", copy: "Programın hazır. İlk set için dokun." },
-      { title: "Sıra sende, " + state.profile.firstName + ".", copy: "Küçük başla, bütün setleri tamamla." },
-      { title: "Motivasyonu bekleme.", copy: "Disiplin ilk setle başlar. Programın hazır." },
-      { title: "Seriyi bugün de koru.", copy: "Planına sadık kal; gerisini tekrarlar getirir." },
-      { title: "Bugün ne çalışıyoruz?", copy: "Programını gör, hazır olduğunda antrenmana başla." }
-    ];
-    var seed = todayKey().split("").reduce(function (sum, char) { return sum + char.charCodeAt(0); }, 0);
-    return messages[seed % messages.length];
-  }
-  function homeWorkoutCard(entry) {
-    var program = entry.program; var active = state.currentWorkout && state.currentWorkout.programId === program.id;
-    return '<article class="home-workout-card ' + (active ? "active" : "") + '" data-program-id="' + esc(program.id) + '">' + exerciseImg(programDays(program)[0].exercises[0] || {}, "home-workout-cover", "") + '<div class="home-workout-copy"><small>' + (active ? "DEVAM EDİYOR" : "ANTRENMAN") + '</small><h3>' + esc(program.name) + '</h3><p>' + esc(programMeta(program)) + '</p><div class="weekday-pills">' + programWeekdays(program) + '</div></div><div class="home-workout-actions"><button class="secondary-btn" data-action="assigned-program-detail" data-program-id="' + esc(program.id) + '">İncele</button><button class="primary-btn" data-action="start-assigned-program" data-program-id="' + esc(program.id) + '">' + (active ? "Devam et" : "Hemen başla") + '<span class="btn-arrow">' + icons.arrow + '</span></button></div></article>';
-  }
-  function renderLegacyHome() {
-    var motivation = homeMotivation(); var assigned = assignedPrograms();
-    screen.innerHTML = '<section class="hello-row"><p class="eyebrow">BUGÜN · ' + formatDay(todayKey()).toUpperCase() + '</p><h1>' + esc(motivation.title) + '</h1><p class="subcopy">' + esc(motivation.copy) + '</p></section>' +
-      (state.currentWorkout && !assigned.some(function (entry) { return entry.program.id === state.currentWorkout.programId; }) ? '<article class="card active-workout-recovery"><p class="eyebrow">YARIM KALAN ANTRENMAN</p><h2>' + esc(currentProgram().name) + '</h2><p>Atama kaldırılmış olsa da başladığın antrenmanı bitirebilir veya iptal edebilirsin.</p><button class="primary-btn" data-action="start">Devam et / Antrenmanı yönet</button><button class="danger-text" data-action="confirm-cancel">Antrenmanı iptal et</button></article>' : '') +
-      '<section class="section home-workouts"><div class="section-head"><div><p class="section-label">SANA ATANAN</p><h2>Antrenmanların</h2></div><span class="program-badge">' + assigned.length + ' antrenman</span></div><div class="home-workout-list">' + (assigned.length ? assigned.map(homeWorkoutCard).join("") : '<article class="card empty-state"><h3>Henüz antrenman atanmadı.</h3><p>Antrenörün yeni bir antrenman atadığında burada görünecek.</p></article>') + '</div></section>' +
-      '<section class="section"><div class="section-head"><div><p class="section-label">BU HAFTA</p><h2>Devamlılığın</h2></div><button class="text-btn" data-action="nav" data-tab="progress">Süreleri gör</button></div><article class="card week-card"><div class="week-row">' + renderWeek() + '</div></article></section>' + renderHomeMessaging();
-  }
-
-
   // Member home and workout behaviour remain isolated from the staff summary.
-  function homeFeatured(assigned) {
-    if (state.currentWorkout) return { program: currentProgram(), day: currentProgramDay(), workout: state.currentWorkout };
-    var entry = assigned.find(function (item) { return item.program.id === state.selectedProgramId; }) || assigned[0];
-    return entry ? { program: entry.program, day: activeProgramDay(entry.program, entry.assignment.dayId), workout: null } : null;
+  function renderMemberHomeHeader() {
+    var coachId = state.gym.coachId || "coach-demo", unread = unreadFrom(coachId);
+    return '<header class="member-home-head"><button class="member-home-avatar" data-action="nav" data-tab="profile" aria-label="Profili aç">' + esc(initials(fullName())) + '</button><div class="member-home-welcome"><h1>Merhaba ' + esc(state.profile.firstName || "") + '</h1><p>' + esc(state.gym.name || "Spor salonun") + '</p></div><button class="member-home-message" data-action="open-chat" data-partner-id="' + esc(coachId) + '" aria-label="' + (unread ? unread + ' okunmamış antrenör mesajı' : 'Antrenöre mesaj gönder') + '">' + icons.message + (unread ? '<b>' + unread + '</b>' : '') + '</button></header>';
   }
-  function renderMemberHero(featured, assigned) {
-    if (!featured) return '<article class="card member-home-hero empty-state"><h2>Henüz antrenman atanmadı.</h2><p>Antrenörün bir program atadığında burada görünecek.</p><button class="secondary-btn" data-action="nav" data-tab="programs">Antrenmanlarım</button></article>';
-    var program = featured.program, day = featured.day, workout = featured.workout;
-    var multiDay = !workout && programDays(program).length > 1;
-    var total = multiDay ? programDays(program).reduce(function (sum, entry) { return sum + entry.exercises.reduce(function (sets, item) { return sets + item.sets; }, 0); }, 0) : workout ? currentExercises().reduce(function (sum, _, index) { return sum + resolveExerciseAt(index).sets; }, 0) : day.exercises.reduce(function (sum, item) { return sum + item.sets; }, 0);
-    var done = workout ? completedSetCount(workout) : 0, percent = total ? Math.min(100, Math.round(done / total * 100)) : 0;
-    var removed = workout && !assigned.some(function (entry) { return entry.program.id === program.id; });
-    var status = workout ? workout.summarySaved ? "Tamamlandı" : workout.status === "paused" ? "Duraklatıldı" : "Devam ediyor" : "Hazır";
-    var action = workout ? 'data-action="start"' : 'data-action="start-assigned-program" data-program-id="' + esc(program.id) + '"';
-    var label = workout ? workout.summarySaved ? "Sonucu gör" : "Devam et" : "Antrenmana başla";
-    return '<article class="card member-home-hero ' + (removed ? 'active-workout-recovery' : '') + '" data-program-id="' + esc(program.id) + '"><div class="member-home-hero-top"><div class="member-home-hero-copy"><p class="eyebrow">' +
-      (workout ? "KALDIĞIN YERDEN" : "ATANAN ANTRENMANIN") + '</p><h2>' + esc(program.name) + '</h2>' +
-      (programDays(program).length > 1 ? '<p class="member-day-name">' + (workout ? esc(day.name) : programDays(program).length + " antrenman · Seansını sen seç") + '</p>' : '') + '<span class="member-home-status"><i aria-hidden="true"></i>' + status + '</span></div>' +
-      exerciseImg({ image: program.image || day.exercises[0] && day.exercises[0].image, name: program.name }, "member-home-hero-cover", "") + '</div>' +
-      '<div class="member-home-hero-stats"><span>' + icons.dumbbell + (multiDay ? total + ' set · programın tamamı' : done + ' / ' + total + ' set') + '</span><span>' + (workout ? '<strong data-home-clock>' + workoutClock() + '</strong><small>geçen süre</small>' : (multiDay ? programDays(program).length + ' seans' : day.exercises.length + ' hareket')) + '</span></div>' +
-      (multiDay ? '' : '<div class="member-progress-row"><div class="member-progress" role="progressbar" aria-label="Antrenman ilerlemesi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + percent + '"><i style="width:' + percent + '%"></i></div><b>%' + percent + '</b></div>') +
-      (removed ? '<p class="member-recovery-copy">Atama kaldırılmış olsa da başladığın antrenmanı bitirebilir veya iptal edebilirsin.</p>' : '') +
-      '<div class="member-home-hero-actions"><button class="primary-btn" ' + action + '>' + icons.arrow + label + '</button>' +
-      (removed ? '<button class="secondary-btn" data-action="confirm-cancel">Antrenmanı iptal et</button>' : '<button class="secondary-btn" data-action="assigned-program-detail" data-program-id="' + esc(program.id) + '">' + icons.chart + 'Programı incele</button>') + '</div></article>';
+
+  function memberProgramCard(entry) {
+    var program = entry.program, days = programDays(program), active = state.currentWorkout && state.currentWorkout.programId === program.id;
+    var firstExercise = days[0] && days[0].exercises && days[0].exercises[0] || {};
+    return '<article class="member-program-card' + (active ? ' is-active' : '') + '" role="listitem" data-program-id="' + esc(program.id) + '"><button class="member-program-media" data-action="assigned-program-detail" data-program-id="' + esc(program.id) + '" aria-label="' + esc(program.name) + ' programını incele">' + exerciseImg({ image: program.image || firstExercise.image, name: program.name }, "member-program-cover", "") + (active ? '<span>Devam ediyor</span>' : '') + '</button><div class="member-program-copy"><button data-action="assigned-program-detail" data-program-id="' + esc(program.id) + '"><strong>' + esc(program.name) + '</strong><small>' + days.length + ' antrenman</small></button><button class="member-program-start" data-action="start-assigned-program" data-program-id="' + esc(program.id) + '">' + (active ? 'Devam et' : 'Antrenman seç') + icons.arrow + '</button></div></article>';
   }
-  function renderMemberWeek(assigned) {
-    var start = mondayFor(todayKey()), end = addDays(start, 7), scheduled = {};
-    var count = completedHistory().filter(function (item) { return !item.isDemo && item.date >= start && item.date < end && item.date <= todayKey(); }).length;
-    assigned.forEach(function (entry) { programTrainingWeekdays(entry.program).forEach(function (day) { scheduled[day] = true; }); });
-    var goal = Object.keys(scheduled).length || assigned.reduce(function (sum, entry) { return sum + programDays(entry.program).length; }, 0);
-    return '<section class="card member-week"><button class="member-week-head" data-action="nav" data-tab="progress"><strong>Bu hafta <b>' + count + (goal ? ' / ' + goal : '') + '</b> antrenman tamamlandı</strong>' + icons.arrow + '</button><div class="week-row">' + renderWeek() + '</div></section>';
+
+  function renderMemberPrograms(assigned) {
+    return '<section class="member-home-programs" aria-labelledby="memberProgramsTitle"><div class="member-section-head"><h2 id="memberProgramsTitle">Programların <span>· ' + assigned.length + '</span></h2><button data-action="nav" data-tab="programs">Tümünü gör</button></div>' + (assigned.length ? '<div class="member-program-carousel" role="list" aria-label="Atanan programlar">' + assigned.map(memberProgramCard).join("") + '</div>' : '<article class="card member-program-empty"><span>' + icons.dumbbell + '</span><div><h3>Henüz program atanmadı.</h3><p>Antrenörün program atadığında burada göreceksin.</p></div></article>') + '</section>';
+  }
+
+  function renderMemberRecovery(assigned) {
+    if (!state.currentWorkout || assigned.some(function (entry) { return entry.program.id === state.currentWorkout.programId; })) return "";
+    var program = currentProgram();
+    return '<article class="card member-home-recovery"><p class="eyebrow">YARIM KALAN ANTRENMAN</p><h2>' + esc(program.name) + '</h2><p>Program ataması kaldırılmış olsa da başladığın antrenmanı bitirebilir veya iptal edebilirsin.</p><div><button class="primary-btn" data-action="start">Devam et</button><button class="secondary-btn" data-action="confirm-cancel">İptal et</button></div></article>';
+  }
+
+  function memberWeekDays(items, partials) {
+    var labels = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"], monday = mondayFor(todayKey()), done = {}, partial = {};
+    items.forEach(function (item) { done[item.date] = true; });
+    partials.forEach(function (item) { partial[item.date] = true; });
+    return labels.map(function (label, index) {
+      var key = addDays(monday, index), status = done[key] ? "done" : partial[key] ? "partial" : "";
+      var classes = [status, key === todayKey() ? "today" : ""].filter(Boolean).join(" ");
+      return '<div class="member-week-day ' + classes + '"><small>' + label + '</small><span aria-label="' + label + (status === "done" ? ' tamamlandı' : status === "partial" ? ' yarım kaldı' : ' antrenman yok') + '">' + (status === "done" ? "✓" : status === "partial" ? "½" : "–") + '</span></div>';
+    }).join("");
+  }
+
+  function renderMemberWeek() {
+    var start = mondayFor(todayKey()), end = addDays(start, 7);
+    var weekly = state.history.filter(function (item) { return !item.isDemo && item.date >= start && item.date < end && item.date <= todayKey(); });
+    var items = weekly.filter(function (item) { return item.status !== "partial"; });
+    var partials = weekly.filter(function (item) { return item.status === "partial"; });
+    var minutes = items.reduce(function (sum, item) { return sum + Math.max(0, Number(item.duration) || 0); }, 0);
+    var sets = items.reduce(function (sum, item) { return sum + historySetCount(item); }, 0);
+    var stats = [[icons.dumbbell, items.length, "Antrenman"], [icons.clock, formatDuration(minutes), "Süre"], [icons.chart || icons.dumbbell, sets, "Set"]];
+    return '<section class="card member-home-week" aria-labelledby="memberWeekTitle"><h2 id="memberWeekTitle">Bu haftaki antrenmanların</h2><div class="member-week-days">' + memberWeekDays(items, partials) + '</div><p class="member-week-caption">' + items.length + ' antrenman tamamlandı' + (partials.length ? ' · ' + partials.length + ' yarım' : '') + '</p></section><section class="member-home-stats"><div class="member-section-head"><h2>Hızlı istatistikler</h2><span class="member-period">Bu hafta</span></div><div class="member-quick-stats">' + stats.map(function (stat) { return '<button data-action="nav" data-tab="progress"><span>' + stat[0] + '</span><strong>' + stat[1] + '</strong><small>' + stat[2] + '</small></button>'; }).join("") + '</div></section>';
+  }
+
+  function renderMemberLastWorkout() {
+    var last = state.history.filter(function (item) { return !item.isDemo && item.date <= todayKey(); }).slice().sort(function (a, b) { return String(b.date).localeCompare(String(a.date)) || String(b.finishedAt || b.createdAt || b.id).localeCompare(String(a.finishedAt || a.createdAt || a.id)); })[0];
+    if (!last) return '<article class="card member-last-workout"><span>' + icons.dumbbell + '</span><div><strong>Son antrenmanın</strong><small>İlk antrenmanın burada görünecek.</small></div></article>';
+    return '<button class="card member-last-workout" data-action="history-detail" data-id="' + esc(last.id) + '"><span>' + icons.dumbbell + '</span><div><strong>Son antrenmanın</strong><small>' + esc(last.name) + ' · ' + formatDuration(last.duration) + (last.status === "partial" ? ' · Yarım' : '') + '</small></div>' + icons.arrow + '</button>';
   }
 
   function renderMemberCoach() {
-    var coachId = state.gym.coachId || "coach-demo", unread = unreadFrom(coachId), last = lastChatMessage(coachId);
-    return '<button class="card member-coach" data-action="open-chat" data-partner-id="' + esc(coachId) + '"><span class="coach-avatar">' + esc(initials(state.gym.coach)) + '</span><span class="member-coach-copy"><strong>' + esc(state.gym.coach || "Antrenörün") + '</strong><span>' + esc(shortMessagePreview(last, currentCoachNote())) + '</span></span>' + (unread ? '<b class="unread-badge">' + unread + '</b>' : icons.arrow) + '</button>';
+    var coachId = state.gym.coachId || "coach-demo", unread = unreadFrom(coachId), coach = state.gym.coach || "Antrenörün";
+    return '<article class="card member-coach"><span class="coach-avatar">' + esc(initials(coach)) + '</span><span class="member-coach-copy"><small>Antrenörün</small><strong>' + esc(coach) + '</strong><span>' + esc(state.gym.name || "Spor salonun") + '</span></span><button data-action="open-chat" data-partner-id="' + esc(coachId) + '">' + icons.message + '<span>Mesaj</span>' + (unread ? '<b class="unread-badge">' + unread + '</b>' : '') + '</button></article>';
   }
   function renderHome() {
     if (isCloudStaff()) return renderTrainerHome();
-    var assigned = assignedPrograms(), featured = homeFeatured(assigned), hour = new Date().getHours();
-    var greeting = hour < 12 ? "Günaydın" : hour < 18 ? "İyi günler" : "İyi akşamlar";
-    screen.innerHTML = '<div class="member-home"><section class="member-greeting"><h1>' + greeting + ', ' + esc(state.profile.firstName) + '</h1><p>Kendine bugün de iyi bak.</p></section>' + renderMemberHero(featured, assigned) +
-      (assigned.length > 1 ? '<button class="member-all-programs" data-action="nav" data-tab="programs"><span>Tüm antrenmanların <b>' + assigned.length + '</b></span>' + icons.arrow + '</button>' : '') +
-      renderMemberWeek(assigned) + renderMemberCoach() + '</div>';
-    if (state.currentWorkout) startWorkoutClock();
+    var assigned = assignedPrograms();
+    screen.innerHTML = '<div class="member-home">' + renderMemberHomeHeader() + renderMemberRecovery(assigned) + renderMemberPrograms(assigned) + renderMemberWeek() + renderMemberLastWorkout() + '</div>';
   }
 
   function programWeekdays(program) {

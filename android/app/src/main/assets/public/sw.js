@@ -1,4 +1,4 @@
-var CACHE_NAME = "fittrack-v0144";
+var CACHE_NAME = "fittrack-v015-final38";
 
 self.addEventListener("install", function (event) {
   event.waitUntil(

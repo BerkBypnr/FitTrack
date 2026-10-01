@@ -6,14 +6,15 @@
   --surface-2: #202226; --surface-3: #2b2d32;
   --text: #fafafa; --muted: #b8bbc2; --muted-2: #989da7;
   --line: #ffffff14; --line-strong: #ffffff29;
-  --mint: #ff6b83; --mint-strong: #f43256; --mint-soft: #f432561c;
-  --accent-2: #c92a48; --primary-start: #e5133b; --primary-end: #be1435;
+  --mint: #e52332; --mint-strong: #e52332; --mint-soft: #e523321c;
+  --accent-2: #bd1d29; --primary-start: #e52332; --primary-end: #e52332;
   --on-accent: #fff; --danger: #ff7d88;
   --status-success: #69d9a1; --status-warning: #edc17b; --status-info: #9bc6f0;
   --shadow: 0 20px 60px #0005;
 }
 
 :root {
+  --workout-done: #39cf85; --workout-partial: #f3cc52; --workout-status-ink: #10251a;
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
   --space-5: 24px; --space-6: 32px; --control-height: 54px;
   --radius-xl: 24px; --radius-lg: 20px; --radius-md: 14px;

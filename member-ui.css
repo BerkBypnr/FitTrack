@@ -1,5 +1,6 @@
-/* FitTrack 0.15.0 — member home. Theme colours continue to come from shared tokens. */
-.member-home { display: grid; gap: 24px; padding-bottom: 12px; }
+/* FitTrack 0.15.1 — member home. Theme colours continue to come from shared tokens. */
+.member-home { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; width: 100%; gap: 24px; padding-bottom: 12px; }
+.member-home > * { min-width: 0; }
 .member-home svg, .achievement-row svg { width: 23px; height: 23px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .member-home button { -webkit-tap-highlight-color: transparent; }
 .member-home-head { display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; align-items: center; gap: 12px; }
@@ -10,22 +11,23 @@
 .member-home-welcome { min-width: 0; }
 .member-home-welcome h1 { margin: 0; font-size: 24px; line-height: 1.2; overflow-wrap: anywhere; }
 .member-home-welcome p { margin: 4px 0 0; color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
-.member-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+.member-section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
 .member-section-head h2 { margin: 0; font-size: 20px; line-height: 1.25; }
 .member-section-head h2 span { color: var(--muted); font-weight: 650; }
-.member-section-head > button { min-height: 44px; padding-inline: 5px; color: var(--mint); font-size: 14px; font-weight: 750; white-space: nowrap; }
-.member-program-carousel { display: grid; grid-auto-flow: column; grid-auto-columns: clamp(218px, 72vw, 270px); gap: 12px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 2px 2px 8px; -webkit-overflow-scrolling: touch; }
+.member-section-head > button { min-height: 44px; max-width: 100%; padding-inline: 5px; color: var(--mint); font-size: 14px; font-weight: 750; white-space: normal; text-align: right; }
+.member-program-carousel { display: grid; min-width: 0; max-width: 100%; grid-auto-flow: column; grid-auto-columns: clamp(174px, 48%, 230px); gap: 12px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 2px 2px 8px; -webkit-overflow-scrolling: touch; }
 .member-program-carousel::-webkit-scrollbar { display: none; }
-.member-program-card { min-width: 0; overflow: hidden; scroll-snap-align: start; border: 1px solid var(--line); border-radius: 19px; background: var(--surface); box-shadow: var(--shadow); }
+.member-program-card { min-width: 0; overflow: hidden; scroll-snap-align: start; scroll-snap-stop: always; border: 1px solid var(--line); border-radius: 19px; background: var(--surface); box-shadow: var(--shadow); }
 .member-program-card.is-active { border-color: var(--mint); }
-.member-program-media { position: relative; display: block; width: 100%; height: 142px; overflow: hidden; background: var(--surface-2); }
+.member-program-media { position: relative; display: block; width: 100%; height: 116px; overflow: hidden; background: var(--surface-2); }
 .member-program-cover { display: block; width: 100%; height: 100%; object-fit: cover; }
 .member-program-media > span { position: absolute; left: 10px; top: 10px; padding: 6px 9px; border-radius: 999px; color: var(--on-accent); background: var(--mint); font-size: 11px; font-weight: 800; }
-.member-program-copy { display: grid; gap: 12px; padding: 14px; }
-.member-program-copy > button:first-child { min-width: 0; min-height: 48px; display: grid; align-content: center; gap: 5px; text-align: left; }
-.member-program-copy strong { display: block; color: var(--text); font-size: 18px; line-height: 1.25; overflow-wrap: anywhere; }
+.member-program-copy { display: grid; gap: 9px; padding: 12px; }
+.member-program-copy > button:first-child { min-width: 0; min-height: 64px; padding: 0; display: grid; align-content: start; gap: 5px; text-align: left; }
+.member-program-copy strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--text); font-size: 17px; line-height: 1.25; overflow-wrap: anywhere; }
 .member-program-copy small { display: block; color: var(--muted); font-size: 13px; }
-.member-program-start { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 46px; padding: 10px 12px; border-radius: 13px; color: var(--on-accent); background: var(--mint); font-size: 15px; font-weight: 800; text-align: left; }
+.member-program-start { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; padding: 10px 9px; border-radius: 13px; color: var(--on-accent); background: var(--mint); font-size: 14px; font-weight: 800; text-align: left; }
+.member-program-copy .member-program-start { font-size: 14px; gap: 4px; }
 .member-program-start svg { width: 19px; height: 19px; }
 .member-program-empty { display: flex; align-items: center; gap: 13px; padding: 16px; }
 .member-program-empty > span { display: grid; place-items: center; width: 48px; height: 48px; flex: 0 0 48px; border-radius: 15px; color: var(--mint); background: var(--mint-soft); }
@@ -37,20 +39,29 @@
 .member-home-recovery > p:not(.eyebrow) { margin: 8px 0 14px; color: var(--muted); font-size: 14px; line-height: 1.5; }
 .member-home-recovery > div { display: grid; grid-template-columns: 1fr auto; gap: 9px; }
 .member-home-recovery button { min-height: 46px; margin: 0; }
-.member-home-week { min-width: 0; }
-.member-home-week .member-section-head > button { color: var(--muted); font-weight: 650; }
-.member-home-week .member-section-head > button b { color: var(--text); }
+.member-home-week { min-width: 0; padding: 16px; }
+.member-home-week h2 { margin: 0 0 18px; font-size: 18px; line-height: 1.35; }
 .member-week-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
-.member-week-day { min-width: 0; display: grid; justify-items: center; gap: 7px; }
-.member-week-day small { color: var(--muted); font-size: 11px; }
-.member-week-day > span { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); background: var(--surface); font-size: 15px; font-weight: 800; }
-.member-week-day.done > span { color: var(--on-accent); border-color: var(--mint); background: var(--mint); }
-.member-week-day.today > span { outline: 2px solid var(--mint); outline-offset: 2px; }
-.member-quick-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
-.member-quick-stats > button { min-width: 0; min-height: 86px; display: grid; grid-template-columns: 40px minmax(0, 1fr); grid-template-rows: auto auto; align-items: center; column-gap: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); text-align: left; }
-.member-quick-stats > button > span { grid-row: 1 / 3; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 13px; color: var(--mint); background: var(--mint-soft); }
-.member-quick-stats small { align-self: end; color: var(--muted); font-size: 12px; }
-.member-quick-stats strong { align-self: start; min-width: 0; color: var(--text); font-size: 19px; line-height: 1.2; overflow-wrap: anywhere; }
+.member-week-day { min-width: 0; display: grid; justify-items: center; gap: 9px; }
+.member-week-day small { color: var(--muted); font-size: 12px; }
+.member-week-day > span { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); background: var(--surface-2); font-size: 16px; font-weight: 800; }
+.member-week-day.done > span { color: var(--workout-status-ink); border-color: var(--workout-done); background: var(--workout-done); }
+.member-week-day.partial > span { color: var(--workout-status-ink); border-color: var(--workout-partial); background: var(--workout-partial); }
+.member-week-day.today > span { outline: 2px solid var(--muted); outline-offset: 2px; }
+.member-week-day.done.today > span { outline-color: var(--workout-done); }
+.member-week-day.partial.today > span { outline-color: var(--workout-partial); }
+.member-week-caption { margin: 17px 0 0; font-size: 14px; color: var(--muted); }
+.member-period { color: var(--muted); border: 1px solid var(--line); border-radius: 20px; padding: 5px 10px; font-size: 13px; }
+.member-quick-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.member-quick-stats > button { min-width: 0; min-height: 126px; display: flex; flex-direction: column; align-items: flex-start; gap: 7px; padding: 13px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); text-align: left; }
+.member-quick-stats > button > span { display: block; color: var(--muted); margin-bottom: 5px; }
+.member-quick-stats small { color: var(--muted); font-size: 13px; }
+.member-quick-stats strong { color: var(--text); font-size: 20px; line-height: 1.25; overflow-wrap: anywhere; max-width: 100%; }
+.member-last-workout { display: flex; align-items: center; gap: 12px; width: 100%; padding: 16px; text-align: left; }
+.member-last-workout > span { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: var(--surface-2); }
+.member-last-workout > div { display: grid; gap: 6px; min-width: 0; flex: 1; }
+.member-last-workout strong { color: var(--text); font-size: 16px; }
+.member-last-workout small { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
 .member-coach { width: 100%; padding: 14px; display: flex; align-items: center; gap: 12px; text-align: left; }
 .member-coach .coach-avatar { width: 48px; height: 48px; flex: 0 0 48px; }
 .member-coach-copy { flex: 1; min-width: 0; display: grid; gap: 2px; }
@@ -64,9 +75,9 @@
   .member-home-head { grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 9px; }
   .member-home-avatar, .member-home-message { width: 44px; height: 44px; border-radius: 14px; }
   .member-home-welcome h1 { font-size: 21px; }
-  .member-program-carousel { grid-auto-columns: min(78vw, 245px); }
+  .member-program-carousel { grid-auto-columns: 174px; }
   .member-week-days { gap: 2px; }
-  .member-week-day > span { width: 31px; height: 31px; }
+  .member-week-day > span { width: 28px; height: 28px; }
   .member-quick-stats > button { padding: 10px; column-gap: 8px; }
   .member-coach > button > span { display: none; }
 }

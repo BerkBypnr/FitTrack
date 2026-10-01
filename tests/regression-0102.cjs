@@ -11,9 +11,9 @@ const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 const config = fs.readFileSync(path.join(root, "config.js"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
-assert.match(app, /var VERSION = "0\.15\.0"/, "Uygulama sürümü 0.15.0 değil.");
-assert.match(config, /appVersion: "0\.15\.0"/, "Bulut cihaz sürümü 0.15.0 değil.");
-assert.match(index, /app\.js\?v=0\.15\.0/, "Web önbellek kırıcı sürümü güncel değil.");
+assert.match(app, /var VERSION = "0\.15"/, "Uygulama sürümü 0.15 değil.");
+assert.match(config, /appVersion: "0\.15"/, "Bulut cihaz sürümü 0.15 değil.");
+assert.match(index, /app\.js\?v=0\.15/, "Web önbellek kırıcı sürümü güncel değil.");
 
 assert(!app.includes("Hazırlık formu yok"), "Eski teknik ana ekran metni kaldırılmadı.");
 assert(app.includes("renderMemberHomeHeader") && app.includes("Merhaba "), "Üye ana sayfası karşılaması eksik.");

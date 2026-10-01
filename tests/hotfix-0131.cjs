@@ -50,10 +50,10 @@ async function test(name, run) {
     assert.match(r.c.authError({ code: 'otp_expired', message: 'Token has expired' }), /Kod hatalı veya süresi dolmuş/);
   });
   await test('Version advances without changing schema or package identity', () => {
-    assert.match(read('app.js'), /var VERSION = "0\.15\.0"/);
+    assert.match(read('app.js'), /var VERSION = "0\.15"/);
     assert.match(read('app.js'), /var SCHEMA = 15/);
-    assert.match(read('android/app/build.gradle'), /versionCode 37/);
-    assert.match(read('android/app/build.gradle'), /versionName "0\.15\.0"/);
+    assert.match(read('android/app/build.gradle'), /versionCode 38/);
+    assert.match(read('android/app/build.gradle'), /versionName "0\.15"/);
     assert.match(read('android/app/src/main/AndroidManifest.xml'), /com\.fittracklabs\.mobile/);
   });
   fs.mkdirSync(path.join(root, 'test-results'), { recursive: true });

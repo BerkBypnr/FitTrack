@@ -57,7 +57,7 @@ test("Home provides profile, messages, progress and all-program navigation", () 
   assert.ok(document.querySelector(".member-home-avatar[data-tab=profile]"));
   assert.ok(document.querySelector(".member-home-message[data-action=open-chat]"));
   assert.ok(document.querySelector(".member-section-head [data-tab=programs]"));
-  assert.equal(document.querySelectorAll(".member-quick-stats [data-tab=progress]").length, 2);
+  assert.equal(document.querySelectorAll(".member-quick-stats [data-tab=progress]").length, 3);
 });
 
 test("Carousel is touch-scrollable, snapping and theme-token based", () => {

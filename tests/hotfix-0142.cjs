@@ -6,10 +6,10 @@ const dom=html=>parseHTML('<html><body>'+html+'</body></html>').document;
 const results=[];
 async function test(name,fn){try{await fn();results.push({name,status:'PASS'});}catch(e){results.push({name,status:'FAIL',error:e.stack});}}
 (async()=>{
-  await test('0.15.0 identity advances without a schema change',()=>{
-    assert.match(fs.readFileSync(path.join(root,'app.js'),'utf8'),/var VERSION = "0\.15\.0"/);
+  await test('0.15 identity advances without a schema change',()=>{
+    assert.match(fs.readFileSync(path.join(root,'app.js'),'utf8'),/var VERSION = "0\.15"/);
     assert.match(fs.readFileSync(path.join(root,'app.js'),'utf8'),/var SCHEMA = 15/);
-    assert.match(fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8'),/versionCode 37/);
+    assert.match(fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8'),/versionCode 38/);
   });
   await test('Session picker uses compact radio rows and never recommends a session',()=>{
     const r=fresh(),a=r.app;a.state.profile.setupComplete=true;

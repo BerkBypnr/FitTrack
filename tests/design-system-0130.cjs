@@ -64,7 +64,7 @@ async function test(name, run) { try { await run(); results.push({name, status:'
     assert.ok(!read('index.html').includes('user-scalable=no'));for(const name of ['design-system.css','assets/brand/welcome-dumbbell.png']){assert.ok(read('sw.js').includes(name));assert.ok(fs.existsSync(path.join(root,name)));}assert.ok(read('scripts/stage_web.cjs').includes('design-system.css'));assert.match(read('design-system.css'),/prefers-reduced-motion/);
   });
   await test('Native identity and schema stay fixed; version and FT branding advance intentionally', () => {
-    assert.match(read('app.js'),/var SCHEMA = 15/);assert.match(read('android/app/build.gradle'),/versionCode 37/);assert.match(read('android/app/src/main/AndroidManifest.xml'),/com.fittracklabs.mobile/);assert.match(read('android/app/src/main/res/drawable/fittrack_app_icon.xml'),/M10,43C13,27/);assert.match(read('icon.svg'),/M10 43C13 27/);
+    assert.match(read('app.js'),/var SCHEMA = 15/);assert.match(read('android/app/build.gradle'),/versionCode 38/);assert.match(read('android/app/src/main/AndroidManifest.xml'),/com.fittracklabs.mobile/);assert.match(read('android/app/src/main/res/drawable/fittrack_app_icon.xml'),/M10,43C13,27/);assert.match(read('icon.svg'),/M10 43C13 27/);
   });
   fs.writeFileSync(path.join(root,'test-results/design-system-0130.json'),JSON.stringify({method:'VM + parsed DOM + static assets. No real Android/SMTP.',results},null,2));
   for(const r of results)console.log(r.status,r.name,r.error||'');

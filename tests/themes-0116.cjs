@@ -71,10 +71,10 @@ assert.match(app, /midnight:\s*"dark-red"/, "Eski koyu tema geçiş eşlemesi ek
 assert.match(app, /light:\s*"redline-editorial"/, "Eski açık tema geçiş eşlemesi eksik.");
 assert.match(app, /document\.documentElement\.dataset\.mode = theme\.mode/, "Açık/koyu ortak davranış niteliği uygulanmıyor.");
 assert.match(app, /theme\.browserColor/, "Android sistem çubuğu rengi seçili temaya bağlanmamış.");
-assert.match(index, /styles\.css\?v=0\.15\.0/, "Tema CSS önbellek kırıcı kimliği eksik.");
-assert.equal(manifest.version, "0.15.0", "Manifest güncel ürün sürümüyle eşleşmiyor.");
+assert.match(index, /styles\.css\?v=0\.15/, "Tema CSS önbellek kırıcı kimliği eksik.");
+assert.equal(manifest.version, "0.15", "Manifest güncel ürün sürümüyle eşleşmiyor.");
 assert.equal(manifest.theme_color, "#101113", "Manifest varsayılan zeminle uyuşmuyor.");
-assert.match(sw, /fittrack-v0150/, "Service worker tema paketi önbellek kimliği eksik.");
+assert.match(sw, /fittrack-v015-final38/, "Service worker tema paketi önbellek kimliği eksik.");
 
 const selectedRuntime = runtime({ theme: "rosewood-strength" });
 assert.equal(selectedRuntime.app.state.theme, "rosewood-strength", "Yeni tema yerel kayıttan geri yüklenmedi.");
@@ -87,6 +87,6 @@ assert.equal(fallbackRuntime.app.state.theme, "dark-red", "Bilinmeyen tema varsa
 
 const shell = index.slice(index.indexOf("  <body>"), index.indexOf("    <script")).replace(/\r\n/g, "\n");
 const shellHash = crypto.createHash("sha256").update(shell).digest("hex");
-assert.equal(shellHash, "8cab65c8a85773a4bf09392780505eb11364a3c3b4e9e60d806a22d864ce083f", "0.15.0 HTML kabuğu beklenen yapıda değil.");
+assert.equal(shellHash, "8cab65c8a85773a4bf09392780505eb11364a3c3b4e9e60d806a22d864ce083f", "0.15 HTML kabuğu beklenen yapıda değil.");
 
 console.log("FitTrack Beta 0.14.1 tema paketi kontrolleri: PASS (4 palet, kontrast, geçiş, önbellek, değişmeyen kabuk)");

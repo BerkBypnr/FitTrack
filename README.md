@@ -1,8 +1,8 @@
-# FitTrack Beta 0.15.0 — üye ana sayfası
+# FitTrack Beta 0.15.1 — ana sayfa kaydırma ve kırmızı tema düzeltmesi
 
-Sürüm **0.15.0 / versionCode 37**, doğrudan taban 0.14.4, veri şeması 15.
+Sürüm **0.15.1 / versionCode 38**, doğrudan taban 0.15.0, veri şeması 15.
 
-Önce `BETA_0.15.0_NOTLARI.md` dosyasını okuyun. Bu sürüm yalnız üye ana
+Önce `BETA_0.15.1_NOTLARI.md` ve `docs/handoffs/FITTRACK_DEVIR_v0.15.0_TO_v0.15.1.md` dosyalarını okuyun. Bu sürüm yalnız üye ana
 sayfasını final UI kararına taşır; aktif antrenman, program seçimi ve antrenör
 ekranları 0.14.4 davranışını korur. Aşağıdaki 0.14.2 açıklaması tarihsel kayıttır.
 

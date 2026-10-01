@@ -10,8 +10,8 @@ const cloud = fs.readFileSync(path.join(root, "cloud.js"), "utf8");
 const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 const migration = fs.readFileSync(path.join(root, "supabase", "fittrack_beta_011_unlimited_assignments_chat.sql"), "utf8");
 
-assert.match(app, /var VERSION = "0\.15\.0"/, "0.15.0 uygulama sürümü eksik.");
-assert.match(app, /var SCHEMA = 15/, "0.15.0 veri şeması eksik.");
+assert.match(app, /var VERSION = "0\.15"/, "0.15 uygulama sürümü eksik.");
+assert.match(app, /var SCHEMA = 15/, "0.15 veri şeması eksik.");
 
 const nativeBack = app.slice(app.indexOf("function registerNativeBackButton()"), app.indexOf("function formatDay("));
 assert(app.includes("window.FitTrackNativeBack = function () { return handleBackNavigation(); };"), "Android geri tuşu iç ekranları işlemiyor.");
