@@ -21,26 +21,16 @@ async function test(name, run) {
       assert.match(source, /M49[ ,]49H70/);
     }
   });
-  await test('Name and gender are separate profile steps', () => {
-    const r = fresh();
-    r.app.openProfileWizard(1);
-    let d = dom(r.elements.flowLayer.innerHTML);
-    assert.equal(d.querySelectorAll('[data-profile-wizard="firstName"]').length, 1);
+  await test('Name and gender are present once in the single profile form', () => {
+    const r = fresh();r.app.state.profile.setupComplete=false;r.app.openProfileWizard();const d = dom(r.elements.flowLayer.innerHTML);
+    assert.equal(d.querySelectorAll('[data-edit-profile="name"]').length, 1);
+    assert.equal(d.querySelectorAll('[data-edit-profile="gender"]').length, 1);
     assert.equal(d.querySelectorAll('[data-action="profile-gender"]').length, 0);
-    r.app.ui.onboardingDraft.firstName = 'Deniz'; r.app.ui.onboardingDraft.lastName = 'Test'; r.app.nextProfileWizard();
-    d = dom(r.elements.flowLayer.innerHTML);
-    assert.equal(r.app.ui.onboardingStep, 2);
-    assert.equal(d.querySelectorAll('[data-profile-wizard="firstName"]').length, 0);
-    assert.equal(d.querySelectorAll('[data-action="profile-gender"]').length, 3);
   });
-  await test('Age and height show one wheel and no second value field', () => {
-    const r = fresh();
-    for (const step of [3, 4]) {
-      r.app.openProfileWizard(step); const d = dom(r.elements.flowLayer.innerHTML);
-      assert.equal(d.querySelectorAll('[role="spinbutton"]').length, 1);
-      assert.equal(d.querySelectorAll('.profile-manual').length, 0);
-      assert.equal(d.querySelectorAll('[data-profile-wizard]').length, 0);
-    }
+  await test('Age and height use direct numeric fields without legacy wheels', () => {
+    const r = fresh();r.app.state.profile.setupComplete=false;r.app.openProfileWizard();const d = dom(r.elements.flowLayer.innerHTML);
+    assert.equal(d.querySelectorAll('[data-edit-profile="age"]').length,1);assert.equal(d.querySelectorAll('[data-edit-profile="height"]').length,1);
+    assert.equal(d.querySelectorAll('[role="spinbutton"]').length,0);assert.equal(d.querySelectorAll('[data-profile-wizard]').length,0);
   });
   await test('Legacy six-step profile recovery maps to the new seven-step flow', () => {
     const r = fresh(); const key = r.app.profileDraftRecoveryKey();
@@ -60,10 +50,10 @@ async function test(name, run) {
     assert.match(r.c.authError({ code: 'otp_expired', message: 'Token has expired' }), /Kod hatalı veya süresi dolmuş/);
   });
   await test('Version advances without changing schema or package identity', () => {
-    assert.match(read('app.js'), /var VERSION = "0\.14\.3"/);
+    assert.match(read('app.js'), /var VERSION = "0\.14\.4"/);
     assert.match(read('app.js'), /var SCHEMA = 15/);
-    assert.match(read('android/app/build.gradle'), /versionCode 35/);
-    assert.match(read('android/app/build.gradle'), /versionName "0\.14\.3"/);
+    assert.match(read('android/app/build.gradle'), /versionCode 36/);
+    assert.match(read('android/app/build.gradle'), /versionName "0\.14\.4"/);
     assert.match(read('android/app/src/main/AndroidManifest.xml'), /com\.fittracklabs\.mobile/);
   });
   fs.mkdirSync(path.join(root, 'test-results'), { recursive: true });

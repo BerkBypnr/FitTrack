@@ -10,9 +10,9 @@ const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 
-assert.match(app, /var VERSION = "0\.14\.3"/, "Uygulama sürümü 0.14.3 değil.");
-assert(index.includes("styles.css?v=0.14.3") && index.includes("app.js?v=0.14.3"), "Web kaynak önbellek anahtarları güncel değil.");
-assert(sw.includes('fittrack-v0143'), "Service worker önbelleği güncel değil.");
+assert.match(app, /var VERSION = "0\.14\.4"/, "Uygulama sürümü 0.14.4 değil.");
+assert(index.includes("styles.css?v=0.14.4") && index.includes("app.js?v=0.14.4"), "Web kaynak önbellek anahtarları güncel değil.");
+assert(sw.includes('fittrack-v0144'), "Service worker önbelleği güncel değil.");
 
 assert(app.includes("tabHistory: []"), "Sekme geri geçmişi tanımlanmadı.");
 assert(app.includes("function navigateBackTab()"), "Sekme geri gezinme işleyicisi eksik.");

@@ -12,7 +12,7 @@ PROJECT='eznxeqraejmwfpwcuxxc'
 def desired():
  payload={'mailer_otp_length':6}
  for key,subject in [('confirmation','FitTrack e-posta doğrulama kodun'),('recovery','FitTrack şifre yenileme kodun')]:
-  payload['mailer_templates_'+key+'_content']=(ROOT/'supabase/templates'/f'{key}.html').read_text()
+  payload['mailer_templates_'+key+'_content']=(ROOT/'supabase/templates'/f'{key}.html').read_text(encoding='utf-8')
   payload['mailer_subjects_'+key]=subject
  return payload
 
@@ -28,7 +28,7 @@ def main():
  try:
   old=request('GET')
   if old.get('mailer_autoconfirm') is not False:raise SystemExit('Enable Confirm email in the dashboard first; signup must require email verification.')
-  args.backup.parent.mkdir(parents=True,exist_ok=True);args.backup.write_text(json.dumps({k:old.get(k) for k in payload},ensure_ascii=False,indent=2));request('PATCH',payload)
+  args.backup.parent.mkdir(parents=True,exist_ok=True);args.backup.write_text(json.dumps({k:old.get(k) for k in payload},ensure_ascii=False,indent=2),encoding='utf-8');request('PATCH',payload)
   actual=request('GET')
   if any(actual.get(k)!=v for k,v in payload.items()):raise SystemExit('Template verification failed. Inspect the dashboard before distributing the APK.')
   print('Signup/recovery templates and six-digit email OTP setting verified. Real email delivery still needs a device test.')

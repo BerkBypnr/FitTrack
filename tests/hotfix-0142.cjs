@@ -6,10 +6,10 @@ const dom=html=>parseHTML('<html><body>'+html+'</body></html>').document;
 const results=[];
 async function test(name,fn){try{await fn();results.push({name,status:'PASS'});}catch(e){results.push({name,status:'FAIL',error:e.stack});}}
 (async()=>{
-  await test('0.14.3 identity advances without a schema change',()=>{
-    assert.match(fs.readFileSync(path.join(root,'app.js'),'utf8'),/var VERSION = "0\.14\.3"/);
+  await test('0.14.4 identity advances without a schema change',()=>{
+    assert.match(fs.readFileSync(path.join(root,'app.js'),'utf8'),/var VERSION = "0\.14\.4"/);
     assert.match(fs.readFileSync(path.join(root,'app.js'),'utf8'),/var SCHEMA = 15/);
-    assert.match(fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8'),/versionCode 35/);
+    assert.match(fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8'),/versionCode 36/);
   });
   await test('Session picker uses compact radio rows and never recommends a session',()=>{
     const r=fresh(),a=r.app;a.state.profile.setupComplete=true;
@@ -36,10 +36,10 @@ async function test(name,fn){try{await fn();results.push({name,status:'PASS'});}
     a.closeCurrentWorkout();setupWorkout(r);for(let i=0;i<a.currentExercise().sets;i++)Object.assign(a.getLog(0,i,true),{weight:'40',reps:'10',completedAt:new Date().toISOString()});a.finishWorkout();
     d=dom(r.elements.flowLayer.innerHTML);assert.equal(d.querySelectorAll('.summary-cover').length,1);assert.equal(d.querySelectorAll('.summary-partial-note').length,0);
   });
-  await test('Profile stays seven steps with stacked names, separate gender, and persistent weight ruler',()=>{
-    const app=fs.readFileSync(path.join(root,'app.js'),'utf8'),css=fs.readFileSync(path.join(root,'design-system.css'),'utf8');
-    assert.match(app,/step === 1[\s\S]*wizard-name-grid/);assert.match(app,/step === 2[\s\S]*gender-picker/);
-    assert.match(app,/keyboardWasOpen && !keyboardOpen/);assert.match(css,/profile-wizard \.weight-ruler \{ display: block/);
+  await test('Initial profile uses the single validated form introduced in 0.14.4',()=>{
+    const r=fresh();r.app.state.profile.setupComplete=false;r.app.openProfileWizard();const d=dom(r.elements.flowLayer.innerHTML);
+    assert.equal(d.querySelectorAll('[data-edit-profile]').length,7);assert.equal(d.querySelectorAll('[role="spinbutton"]').length,0);
+    assert.equal(d.querySelectorAll('[data-action="save-profile-details"]').length,1);assert.equal(d.querySelector('[data-profile-setup]').dataset.profileSetup,'true');
   });
   fs.mkdirSync(path.join(root,'test-results'),{recursive:true});fs.writeFileSync(path.join(root,'test-results/hotfix-0142.json'),JSON.stringify({method:'Production functions in VM + parsed DOM + static Android identity; no phone',results},null,2));
   for(const item of results)console.log(item.status,item.name,item.error||'');if(results.some(item=>item.status==='FAIL'))process.exitCode=1;

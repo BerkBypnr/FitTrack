@@ -9,7 +9,7 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const cloud = fs.readFileSync(path.join(root, "cloud.js"), "utf8");
 const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 
-assert.match(app, /var VERSION = "0\.14\.3"/, "Yama sürümü güncel değil.");
+assert.match(app, /var VERSION = "0\.14\.4"/, "Yama sürümü güncel değil.");
 assert(app.includes("getCachedAccountContext"), "Çevrimdışı hesap bağlamı eksik.");
 assert(cloud.includes("resumeOfflineAccount"), "Çevrimdışı yeniden açılış koruması eksik.");
 assert(cloud.includes("revalidateOfflineSession"), "Çevrimiçi dönüş oturum doğrulaması eksik.");

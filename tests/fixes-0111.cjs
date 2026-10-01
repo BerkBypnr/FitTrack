@@ -10,7 +10,7 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 const mainActivity = fs.readFileSync(path.join(root, "android/app/src/main/java/com/fittracklabs/mobile/MainActivity.java"), "utf8");
 
-assert.match(app, /var VERSION = "0\.14\.3"/, "0.14.3 sürümü eksik.");
+assert.match(app, /var VERSION = "0\.14\.4"/, "0.14.4 sürümü eksik.");
 assert(app.includes("window.FitTrackNativeBack") && app.includes("confirmCancel()"), "Yerel geri köprüsü antrenman iptaline bağlı değil.");
 assert(mainActivity.includes("dispatchFitTrackBack()") && mainActivity.includes("FitTrackNativeBack") && mainActivity.includes("evaluateJavascript"), "Android MainActivity geri tuşunu web akışına iletmiyor.");
 assert(mainActivity.includes('if (!"true".equals(value)) moveTaskToBack(true)'), "Kök ekranda uygulamayı arkaya alma geri dönüşü eksik.");

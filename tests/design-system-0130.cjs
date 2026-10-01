@@ -8,6 +8,7 @@ const { fresh, runtime, cloudRuntime, clone } = require('./review/harness.cjs');
 const root = path.resolve(__dirname, '..');
 const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 const dom = html => parseHTML('<html><body>' + html + '</body></html>').document;
+const profileInputs = values => Object.entries(values).map(([key, value]) => ({ dataset:{ editProfile:key }, value:String(value == null ? '' : value) }));
 const results = [];
 async function test(name, run) { try { await run(); results.push({name, status:'PASS'}); } catch (e) { results.push({name,status:'FAIL',error:e.message}); } }
 (async () => {
@@ -20,29 +21,32 @@ async function test(name, run) { try { await run(); results.push({name, status:'
     assert.equal(d.querySelectorAll('[data-action="select-theme"]').length,4);
     assert.ok(!d.body.textContent.includes('Volt Discipline')); assert.ok(!d.body.textContent.includes('Crimson Graphite'));
   });
-  await test('Current profile draft resumes at the same step without converting values', () => {
+  await test('Current profile draft resumes in the single form without converting values', () => {
     const r=fresh(); r.app.ui.onboardingDraft={firstName:'Ayşe',lastName:'Demir',age:'31',height:'168',currentWeight:'64.5',targetWeight:'60',units:'kg',goal:'fit'};r.app.ui.onboardingStep=4;r.app.saveProfileWizardRecovery();
-    const next=runtime(null,new Map(r.store));assert.equal(next.app.ui.onboardingStep,4);assert.equal(next.app.ui.onboardingDraft.height,'168');assert.equal(next.app.ui.onboardingDraft.gender,'unspecified');
+    const next=runtime(null,new Map(r.store));next.app.state.profile.setupComplete=false;next.app.openProfileWizard();const d=dom(next.elements.flowLayer.innerHTML);
+    assert.equal(d.querySelector('[data-edit-profile="name"]').value,'Ayşe Demir');assert.equal(d.querySelector('[data-edit-profile="height"]').value,'168');assert.equal(next.app.ui.onboardingDraft.gender,'unspecified');
   });
-  await test('Gender, strength goal and optional weight survive draft and final state reload', () => {
-    const r=fresh();r.app.openProfileWizard(1);Object.assign(r.app.ui.onboardingDraft,{firstName:'Deniz',lastName:'Test',gender:'female',goal:'strength',targetWeight:''});r.app.ui.onboardingStep=7;r.app.saveProfileWizardRecovery();
-    const next=runtime(null,new Map(r.store));assert.equal(next.app.ui.onboardingDraft.gender,'female');assert.equal(next.app.ui.onboardingDraft.goal,'strength');assert.equal(next.app.ui.onboardingDraft.targetWeight,'');
-    next.app.finishProfileWizard(); const last=runtime(null,new Map(next.store));assert.equal(last.app.state.profile.targetWeight,null);assert.equal(last.app.state.profile.gender,'female');assert.equal(last.app.state.profile.goal,'strength');
+  await test('Gender, strength goal and optional weight survive single-form save and reload', () => {
+    const r=fresh();r.app.state.profile.setupComplete=false;r.app.openProfileWizard();r.selectors.set('[data-edit-profile]',profileInputs({name:'Deniz Test',age:'31',gender:'female',height:'168',currentWeight:'64.5',goal:'strength',targetWeight:''}));r.app.saveProfileDetails();
+    const last=runtime(null,new Map(r.store));assert.equal(last.app.state.profile.targetWeight,null);assert.equal(last.app.state.profile.gender,'female');assert.equal(last.app.state.profile.goal,'strength');
   });
-  await test('Age and height use one accessible wheel without a duplicate value field', () => {
-    const r=fresh();for(const step of [3,4]){r.app.openProfileWizard(step);const d=dom(r.elements.flowLayer.innerHTML);assert.equal(d.querySelectorAll('[role="spinbutton"]').length,1);assert.equal(d.querySelectorAll('[data-profile-wizard]').length,0);assert.equal(d.querySelector('[autofocus]'),null);}
+  await test('Single profile form exposes each field once and contains no legacy wheel', () => {
+    const r=fresh();r.app.state.profile.setupComplete=false;r.app.openProfileWizard();const d=dom(r.elements.flowLayer.innerHTML);
+    assert.equal(d.querySelectorAll('[data-edit-profile]').length,7);assert.equal(d.querySelectorAll('[data-edit-profile="age"]').length,1);assert.equal(d.querySelectorAll('[data-edit-profile="height"]').length,1);assert.equal(d.querySelectorAll('[role="spinbutton"]').length,0);
   });
-  await test('Weight ruler and manual decimal input share a field key; target offers skip', () => {
-    const r=fresh();r.app.openProfileWizard(5);let d=dom(r.elements.flowLayer.innerHTML);assert.equal(d.querySelector('[type="range"]').dataset.profileRange,'currentWeight');assert.equal(d.querySelector('[data-profile-wizard]').getAttribute('inputmode'),'decimal');r.app.openProfileWizard(6);d=dom(r.elements.flowLayer.innerHTML);assert.ok(d.querySelector('[data-action="profile-skip-target"]'));r.click('profile-skip-target');assert.equal(r.app.ui.onboardingStep,7);assert.equal(r.app.ui.onboardingDraft.targetWeight,'');
+  await test('Current and optional target weight use decimal fields in the single form', () => {
+    const r=fresh();r.app.state.profile.setupComplete=false;r.app.openProfileWizard();const d=dom(r.elements.flowLayer.innerHTML);
+    assert.equal(d.querySelector('[data-edit-profile="currentWeight"]').getAttribute('inputmode'),'decimal');assert.equal(d.querySelector('[data-edit-profile="targetWeight"]').getAttribute('inputmode'),'decimal');assert.match(d.querySelector('[data-edit-profile="targetWeight"]').parentElement.textContent,/isteğe bağlı/i);
   });
-  await test('Invalid age, out of range kilograms and nonnumeric values never advance', () => {
-    const r=fresh();r.app.openProfileWizard(3);for(const value of ['13','101','22.5','oops']){r.app.ui.onboardingDraft.age=value;assert.equal(r.app.validateWizardStep(),false);}r.app.openProfileWizard(5);for(const value of ['','301','NaN','-1']){r.app.ui.onboardingDraft.currentWeight=value;assert.equal(r.app.validateWizardStep(),false);}r.app.ui.onboardingDraft.currentWeight='78.5';assert.equal(r.app.validateWizardStep(),true);
+  await test('Invalid profile values cannot save; a valid optional target can', () => {
+    const r=fresh();r.app.state.profile.setupComplete=false;r.app.openProfileWizard();r.selectors.set('[data-edit-profile]',profileInputs({name:'Deniz Test',age:'13',gender:'unspecified',height:'170',currentWeight:'78.5',goal:'fit',targetWeight:''}));r.app.saveProfileDetails();assert.equal(r.app.state.profile.setupComplete,false);
+    r.selectors.set('[data-edit-profile]',profileInputs({name:'Deniz Test',age:'28',gender:'unspecified',height:'170',currentWeight:'78.5',goal:'fit',targetWeight:''}));r.app.saveProfileDetails();assert.equal(r.app.state.profile.setupComplete,true);assert.equal(r.app.state.profile.targetWeight,null);
   });
-  await test('Unit switches convert both draft values without modifying history before save', () => {
-    const r=fresh();r.app.openProfileWizard(5);r.app.ui.onboardingDraft.currentWeight='80';r.app.ui.onboardingDraft.targetWeight='';const before=clone(r.app.state);r.click('profile-unit',{unit:'lb'});assert.equal(r.app.ui.onboardingDraft.currentWeight,'176.4');assert.equal(r.app.ui.onboardingDraft.targetWeight,'');assert.deepEqual(clone(r.app.state),before);r.click('profile-unit',{unit:'kg'});assert.equal(r.app.ui.onboardingDraft.currentWeight,'80');
+  await test('Saving the setup profile does not modify workout history', () => {
+    const r=fresh();r.app.state.profile.setupComplete=false;r.app.state.history=[{id:'h1',exercises:[]}];const before=clone(r.app.state.history);r.app.openProfileWizard();r.selectors.set('[data-edit-profile]',profileInputs({name:'Deniz Test',age:'28',gender:'unspecified',height:'170',currentWeight:'78.5',goal:'fit',targetWeight:''}));r.app.saveProfileDetails();assert.deepEqual(clone(r.app.state.history),before);
   });
   await test('Profile names are escaped in new cards and cannot inject markup', () => {
-    const r=fresh();r.app.openProfileWizard(1);r.app.ui.onboardingDraft.firstName='"><img src=x onerror=alert(1)>';r.app.renderProfileWizard();assert.equal(dom(r.elements.flowLayer.innerHTML).querySelector('img'),null);
+    const r=fresh();r.app.state.profile.setupComplete=false;r.app.ui.onboardingDraft={...r.app.state.profile,firstName:'"><img src=x onerror=alert(1)>',lastName:'Test'};r.app.openProfileWizard();assert.equal(dom(r.elements.flowLayer.innerHTML).querySelector('img'),null);
   });
   await test('Welcome shows only real account actions, no demo user or exercise recommendation', async () => {
     const r=await cloudRuntime();r.c.renderWelcome();const d=dom(r.elements.authLayer.innerHTML);assert.ok(d.querySelector('.welcome-screen'));assert.equal(d.querySelectorAll('[data-cloud-action="auth-tab"]').length,2);assert.equal(d.querySelector('input'),null);assert.match(d.body.textContent,/Hoş geldin/);
@@ -60,7 +64,7 @@ async function test(name, run) { try { await run(); results.push({name, status:'
     assert.ok(!read('index.html').includes('user-scalable=no'));for(const name of ['design-system.css','assets/brand/welcome-dumbbell.png']){assert.ok(read('sw.js').includes(name));assert.ok(fs.existsSync(path.join(root,name)));}assert.ok(read('scripts/stage_web.cjs').includes('design-system.css'));assert.match(read('design-system.css'),/prefers-reduced-motion/);
   });
   await test('Native identity and schema stay fixed; version and FT branding advance intentionally', () => {
-    assert.match(read('app.js'),/var SCHEMA = 15/);assert.match(read('android/app/build.gradle'),/versionCode 35/);assert.match(read('android/app/src/main/AndroidManifest.xml'),/com.fittracklabs.mobile/);assert.match(read('android/app/src/main/res/drawable/fittrack_app_icon.xml'),/M10,43C13,27/);assert.match(read('icon.svg'),/M10 43C13 27/);
+    assert.match(read('app.js'),/var SCHEMA = 15/);assert.match(read('android/app/build.gradle'),/versionCode 36/);assert.match(read('android/app/src/main/AndroidManifest.xml'),/com.fittracklabs.mobile/);assert.match(read('android/app/src/main/res/drawable/fittrack_app_icon.xml'),/M10,43C13,27/);assert.match(read('icon.svg'),/M10 43C13 27/);
   });
   fs.writeFileSync(path.join(root,'test-results/design-system-0130.json'),JSON.stringify({method:'VM + parsed DOM + static assets. No real Android/SMTP.',results},null,2));
   for(const r of results)console.log(r.status,r.name,r.error||'');
